@@ -1,0 +1,186 @@
+# Project Status
+
+**Last Updated**: 2025-12-31
+
+---
+
+## Current Goal
+
+Complete production-ready codebase cleanup and bring project into full compliance with `rules.md` standards.
+
+---
+
+## What Works Now
+
+### ✅ Backend Infrastructure
+- **User Authentication System**
+  - JWT-based authentication with access/refresh tokens
+  - Email verification workflow
+  - Password reset functionality
+  - Secure password hashing with bcrypt
+  - Token storage and management
+  
+- **Database**
+  - PostgreSQL 14+ with Prisma ORM
+  - Tables: `users`, `user_projects`, `verification_tokens`, `password_reset_tokens`
+  - Foreign key constraints and indexes implemented
+  - Migrations system in place
+
+- **User Projects API**
+  - `POST /v1/user-projects` - Create project
+  - `GET /v1/user-projects/:id` - Get project by ID
+  - `GET /v1/user-projects/user/:userId` - Get all projects for user
+  - `PATCH /v1/user-projects/:id` - Update project
+  - `DELETE /v1/user-projects/:id` - Delete project
+  - All endpoints protected with JWT authentication
+
+### ✅ LLM Pipeline (Partial)
+- **Stage 1: Intent Decomposition** - Breaks down research abstract into components
+- **Stage 2: Query Generation** - Generates search queries from intent
+- **Paper Scoring** - Evaluates papers for relevance and novelty
+
+### ✅ Development Infrastructure
+- TypeScript with Express.js
+- Environment configuration with Zod validation
+- Logging with Pino
+- CORS and security middleware
+- Error handling middleware
+
+---
+
+## In Progress
+
+### 🔄 Documentation Cleanup (HIGH PRIORITY)
+- Consolidating 48 scattered documentation files into 10 core files
+- Creating ER diagram for database schema
+- Standardizing API documentation format
+- Implementing rules.md compliance
+
+### 🔄 Code Quality Improvements
+- Adding JSDoc to all public functions
+- Reviewing naming conventions
+- Adding comprehensive error handling
+- Implementing input validation schemas
+
+---
+
+## Next Tasks
+
+### Priority 1: Documentation (This Week)
+1. ✅ Create 10 core documentation files
+2. ✅ Create database ER diagram
+3. ✅ Consolidate API documentation
+4. ✅ Archive old documentation files
+5. ⚪ Create comprehensive testing documentation
+
+### Priority 2: Code Quality (Next Week)
+1. ⚪ Add JSDoc to all services
+2. ⚪ Add JSDoc to all controllers
+3. ⚪ Review and fix naming conventions
+4. ⚪ Add input validation schemas
+5. ⚪ Achieve 70% test coverage
+
+### Priority 3: Features (Future)
+1. ⚪ Stage 3: Paper Retrieval (arXiv + Semantic Scholar)
+2. ⚪ Stage 4: Filtering
+3. ⚪ Frontend integration
+4. ⚪ User dashboard
+5. ⚪ Project management UI
+
+---
+
+## Known Issues / Tech Debt
+
+### Documentation
+- ❌ **48 documentation files** (should be 10) - **FIXING NOW**
+- ❌ No ER diagram for database schema - **CREATING NOW**
+- ❌ API documentation scattered across multiple files - **CONSOLIDATING NOW**
+- ❌ No centralized testing documentation
+
+### Code Quality
+- ⚠️ Missing JSDoc on many functions
+- ⚠️ Some functions lack proper error handling
+- ⚠️ Input validation not comprehensive
+- ⚠️ Test coverage below 70% target
+
+### Features
+- ⚪ Paper retrieval not implemented (Stage 3)
+- ⚪ Filtering not implemented (Stage 4)
+- ⚪ Frontend not fully integrated with backend
+
+---
+
+## Recent Changes
+
+### 2025-12-31
+- **Created comprehensive rules.md** with all project standards
+- **Created MIGRATION_GUIDE.md** for bringing existing code into compliance
+- **Created .antigravity config** to enforce rules
+- **Updated README.md** with prominent rules section
+- **Started production-ready cleanup** of entire codebase
+
+### 2025-12-28
+- Renamed all project-related files from `project` to `userProject`
+- Added `GET /v1/user-projects/user/:userId` endpoint
+- Updated all API routes to use `/v1/user-projects` prefix
+- Created comprehensive testing documentation for Projects API
+
+### 2025-12-27
+- Merged Stages 5, 6, 7 into single "Paper Scoring" stage
+- Implemented semantic matching and dual-category evaluation
+- Added research gap analysis
+
+### 2025-12-25
+- Simplified Stage 2 input structure
+- Stage 2 now directly accepts Stage 1 output
+
+---
+
+## Metrics
+
+### Code
+- **Backend**: ~15,000 lines of TypeScript
+- **Test Coverage**: ~40% (Target: 70%)
+- **API Endpoints**: 12 (5 auth, 5 projects, 2 LLM stages)
+
+### Documentation
+- **Current**: 48 files (scattered)
+- **Target**: 10 core files (consolidating now)
+- **ER Diagram**: Creating now
+- **API Docs**: Consolidating now
+
+### Database
+- **Tables**: 4 (users, user_projects, verification_tokens, password_reset_tokens)
+- **Migrations**: 3
+- **Indexes**: 6
+- **Foreign Keys**: 3
+
+---
+
+## Team Notes
+
+### For New Developers
+1. Read `rules.md` first - **MANDATORY**
+2. Follow `MIGRATION_GUIDE.md` for contributing
+3. All changes must pass Post-Implementation Checklist
+4. Database changes MUST include ER diagram update
+
+### For AI Assistants (Antigravity)
+- Configure to use `rules.md` as custom rules file
+- All work must comply with rules.md standards
+- Post-Implementation Checklist must be completed for every change
+- ER diagram must be updated with ANY database change
+
+---
+
+## Success Criteria
+
+Project is production-ready when:
+- ✅ All 10 core documentation files exist and are complete
+- ✅ ER diagram exists and matches database schema
+- ✅ All API endpoints documented with full template
+- ✅ All public functions have JSDoc
+- ✅ Test coverage ≥ 70%
+- ✅ Post-Implementation Checklist passes 100%
+- ✅ No linting errors
+- ✅ No console.logs in production code
