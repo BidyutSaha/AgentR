@@ -1,0 +1,36 @@
+# Stage 5+6 API Test
+
+## Test the categorize endpoint
+
+### Direct Competitor Test
+POST http://localhost:3000/v1/stages/categorize
+Content-Type: application/json
+
+{
+  "userAbstract": "We propose a low-power TinyML-based multitask model for real-time face tracking on microcontroller-class devices, enabling on-device inference with minimal memory and latency.",
+  "candidateAbstract": "This paper presents an efficient TinyML framework for real-time facial landmark tracking on resource-constrained embedded systems. Our approach achieves low-latency inference on ARM Cortex-M microcontrollers with minimal power consumption."
+}
+
+###
+
+### Supporting Work Test
+POST http://localhost:3000/v1/stages/categorize
+Content-Type: application/json
+
+{
+  "userAbstract": "We propose a low-power TinyML-based multitask model for real-time face tracking on microcontroller-class devices, enabling on-device inference with minimal memory and latency.",
+  "candidateAbstract": "We present a comprehensive survey of machine learning optimization techniques for resource-constrained embedded devices, focusing on model compression, quantization, and efficient inference strategies for edge computing."
+}
+
+###
+
+### Low Relevance Test
+POST http://localhost:3000/v1/stages/categorize
+Content-Type: application/json
+
+{
+  "userAbstract": "We propose a low-power TinyML-based multitask model for real-time face tracking on microcontroller-class devices, enabling on-device inference with minimal memory and latency.",
+  "candidateAbstract": "This paper introduces a novel deep learning architecture for natural language processing tasks, achieving state-of-the-art results on sentiment analysis and text classification benchmarks using transformer-based models."
+}
+
+###

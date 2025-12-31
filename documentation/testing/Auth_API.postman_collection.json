@@ -1,0 +1,322 @@
+{
+    "info": {
+        "name": "Literature Review - Authentication API",
+        "description": "Complete authentication API collection for testing",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000/v1/auth",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Register User",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const response = pm.response.json();",
+                            "if (response.success) {",
+                            "  pm.environment.set('access_token', response.data.tokens.accessToken);",
+                            "  pm.environment.set('refresh_token', response.data.tokens.refreshToken);",
+                            "  pm.test('Registration successful', () => {",
+                            "    pm.response.to.have.status(201);",
+                            "  });",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!@#\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/register",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "register"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "2. Login User",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const response = pm.response.json();",
+                            "if (response.success) {",
+                            "  pm.environment.set('access_token', response.data.tokens.accessToken);",
+                            "  pm.environment.set('refresh_token', response.data.tokens.refreshToken);",
+                            "  pm.test('Login successful', () => {",
+                            "    pm.response.to.have.status(200);",
+                            "  });",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!@#\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/login",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "login"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "3. Verify Email",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/verify-email?token=YOUR_TOKEN_HERE",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verify-email"
+                    ],
+                    "query": [
+                        {
+                            "key": "token",
+                            "value": "YOUR_TOKEN_HERE",
+                            "description": "Get this from verification email"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "4. Resend Verification",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"test@example.com\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/resend-verification",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "resend-verification"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "5. Forgot Password",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"test@example.com\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/forgot-password",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "forgot-password"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "6. Reset Password",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"token\": \"YOUR_RESET_TOKEN_HERE\",\n  \"newPassword\": \"NewTest123!@#\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/reset-password",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "reset-password"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "7. Refresh Token",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const response = pm.response.json();",
+                            "if (response.success) {",
+                            "  pm.environment.set('access_token', response.data.tokens.accessToken);",
+                            "  pm.environment.set('refresh_token', response.data.tokens.refreshToken);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/refresh",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "refresh"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "8. Logout",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/logout",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "logout"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "9. Get Profile (Protected)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/profile",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "profile"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "10. Change Password (Protected)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{access_token}}"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"currentPassword\": \"Test123!@#\",\n  \"newPassword\": \"NewTest456!@#\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/change-password",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "change-password"
+                    ]
+                }
+            }
+        }
+    ]
+}

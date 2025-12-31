@@ -1,0 +1,213 @@
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp
+.pnp.js
+
+# ============================================
+# Build Output
+# ============================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Keep template files
+!.env.example
+!.env.template
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+pino-*.log
+
+# ============================================
+# Testing & Coverage
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+test-results/
+playwright-report/
+.playwright/
+
+# ============================================
+# Database
+# ============================================
+# Prisma
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/migrations/**/migration.sql.backup
+
+# Keep migration files but ignore local DB
+!prisma/schema.prisma
+!prisma/migrations/
+
+# ============================================
+# IDE & Editor
+# ============================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# Operating System
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# TypeScript
+# ============================================
+*.tsbuildinfo
+.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ============================================
+# Linting & Formatting
+# ============================================
+.eslintcache
+.prettierignore
+.stylelintcache
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# ============================================
+# Documentation Build
+# ============================================
+.docusaurus/
+docs/.vuepress/dist/
+docs/.vitepress/dist/
+
+# ============================================
+# Miscellaneous
+# ============================================
+# Lock files (keep only one type)
+# Uncomment the ones you want to ignore:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Sentry
+.sentryclirc
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# Python (if you have any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Certificates & Keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Large media files (optional - uncomment if needed)
+# *.mp4
+# *.mov
+# *.avi
+# *.mkv
+# *.mp3
+# *.wav
+
+# ============================================
+# Project Specific
+# ============================================
+# Add any project-specific files or folders here
+setup-tests/output/
+test-stage*.js
+test-stage*.ps1
