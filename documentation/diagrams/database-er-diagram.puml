@@ -64,12 +64,44 @@ entity "user_projects" as projects {
   * updated_at : TIMESTAMP
 }
 
+entity "candidate_papers" as papers {
+  * id : UUID <<PK>>
+  --
+  * project_id : UUID <<FK>>
+  * paper_title : VARCHAR(500)
+  * paper_abstract : TEXT
+  paper_download_link : VARCHAR(500)
+  * is_processed_by_llm : BOOLEAN
+  semantic_similarity : DECIMAL(5,4)
+  similarity_model_name : VARCHAR(100)
+  problem_overlap : VARCHAR(20)
+  domain_overlap : VARCHAR(20)
+  constraint_overlap : VARCHAR(20)
+  c1_score : DECIMAL(5,2)
+  c1_justification : TEXT
+  c1_strengths : TEXT
+  c1_weaknesses : TEXT
+  c2_score : DECIMAL(5,2)
+  c2_justification : TEXT
+  c2_contribution_type : TEXT
+  c2_relevance_areas : TEXT
+  research_gaps : TEXT
+  user_novelty : TEXT
+  model_used : VARCHAR(100)
+  input_tokens_used : INTEGER
+  output_tokens_used : INTEGER
+  processed_at : TIMESTAMP
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
 ' Relationships
 
 users ||--o{ email_tokens : "has"
 users ||--o{ password_tokens : "has"
 users ||--o{ refresh_tokens : "has"
 users ||--o{ projects : "owns"
+projects ||--o{ papers : "contains"
 
 ' Notes
 
@@ -106,6 +138,16 @@ note right of projects
   - Stores project metadata
   - Links to user
   - Cascade delete with user
+end note
+
+note right of papers
+  Candidate papers for analysis
+  - Basic info (title, abstract, link)
+  - LLM processing status
+  - Semantic similarity scores
+  - C1/C2 analysis results
+  - Research gap identification
+  - Cascade delete with project
 end note
 
 @enduml

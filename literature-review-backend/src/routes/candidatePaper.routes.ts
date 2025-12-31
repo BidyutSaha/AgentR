@@ -12,17 +12,13 @@ import { createCandidatePaperSchema } from '../services/candidatePaper/candidate
 const router = Router();
 
 /**
- * All routes require authentication
- */
-router.use(authenticate);
-
-/**
  * @route   POST /v1/user-projects/:projectId/papers
  * @desc    Create a new candidate paper for a project
  * @access  Protected
  */
 router.post(
     '/:projectId/papers',
+    authenticate,
     validate(createCandidatePaperSchema),
     handleCreateCandidatePaper
 );
@@ -34,6 +30,7 @@ router.post(
  */
 router.get(
     '/:projectId/papers',
+    authenticate,
     handleGetCandidatePapers
 );
 
@@ -44,6 +41,7 @@ router.get(
  */
 router.get(
     '/:projectId/papers/:paperId',
+    authenticate,
     handleGetCandidatePaperById
 );
 
@@ -54,6 +52,7 @@ router.get(
  */
 router.delete(
     '/:projectId/papers/:paperId',
+    authenticate,
     handleDeleteCandidatePaper
 );
 

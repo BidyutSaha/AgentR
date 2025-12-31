@@ -18,6 +18,7 @@ Complete database schema documentation for the Literature Review System.
    - [password_reset_tokens](#table-password_reset_tokens)
    - [refresh_tokens](#table-refresh_tokens)
    - [user_projects](#table-user_projects)
+   - [candidate_papers](#table-candidate_papers)
 4. [Indexes](#indexes)
 5. [Migrations](#migrations)
 6. [Backup & Recovery](#backup--recovery)
@@ -26,7 +27,7 @@ Complete database schema documentation for the Literature Review System.
 
 ## Overview
 
-The database consists of **5 tables** organized into two main groups:
+The database consists of **6 tables** organized into two main groups:
 
 ### Authentication Tables
 - `users` - Core user accounts
@@ -36,8 +37,9 @@ The database consists of **5 tables** organized into two main groups:
 
 ### Application Tables
 - `user_projects` - User research projects
+- `candidate_papers` - Candidate papers for analysis
 
-**Total Relationships**: 4 foreign keys (all with CASCADE delete)
+**Total Relationships**: 5 foreign keys (all with CASCADE delete)
 
 ---
 
@@ -54,6 +56,7 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 - `users` → `password_reset_tokens` (1:N)
 - `users` → `refresh_tokens` (1:N)
 - `users` → `user_projects` (1:N)
+- `user_projects` → `candidate_papers` (1:N)
 
 ---
 
@@ -241,6 +244,66 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 
 ---
 
+### Table: candidate_papers
+
+**Description**: Stores candidate papers for analysis and comparison against user's research project.
+
+#### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique paper identifier |
+| project_id | UUID | NOT NULL, FK → user_projects(id) | Project this paper belongs to |
+| paper_title | VARCHAR(500) | NOT NULL | Title of the candidate paper |
+| paper_abstract | TEXT | NOT NULL | Abstract of the candidate paper |
+| paper_download_link | VARCHAR(500) | NULL | Optional download link (PDF, arXiv, etc.) |
+| is_processed_by_llm | BOOLEAN | NOT NULL, DEFAULT false | Whether LLM analysis has been performed |
+| semantic_similarity | DECIMAL(5,4) | NULL | Similarity score (0.0000-1.0000) |
+| similarity_model_name | VARCHAR(100) | NULL | Model used for similarity calculation |
+| problem_overlap | VARCHAR(20) | NULL | Problem overlap level (high/medium/low) |
+| domain_overlap | VARCHAR(20) | NULL | Domain overlap level (high/medium/low) |
+| constraint_overlap | VARCHAR(20) | NULL | Constraint overlap level (high/medium/low) |
+| c1_score | DECIMAL(5,2) | NULL | C1 (competitor) score (0-100) |
+| c1_justification | TEXT | NULL | Justification for C1 score |
+| c1_strengths | TEXT | NULL | Strengths of the candidate paper |
+| c1_weaknesses | TEXT | NULL | Weaknesses of the candidate paper |
+| c2_score | DECIMAL(5,2) | NULL | C2 (supporting work) score (0-100) |
+| c2_justification | TEXT | NULL | Justification for C2 score |
+| c2_contribution_type | TEXT | NULL | Type of contribution this paper makes |
+| c2_relevance_areas | TEXT | NULL | Areas where this paper is relevant |
+| research_gaps | TEXT | NULL | Research gaps identified in the paper |
+| user_novelty | TEXT | NULL | What makes user's work novel vs this paper |
+| model_used | VARCHAR(100) | NULL | LLM model used for analysis |
+| input_tokens_used | INTEGER | NULL | Number of input tokens consumed |
+| output_tokens_used | INTEGER | NULL | Number of output tokens generated |
+| processed_at | TIMESTAMP | NULL | When LLM processing was completed |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Paper creation time |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update time |
+
+#### Indexes
+
+- `idx_candidate_papers__project_id` — Fast lookup by project
+- `idx_candidate_papers__is_processed_by_llm` — Filter by processing status
+- `idx_candidate_papers__created_at` — Sorting by creation date
+
+#### Constraints
+
+- `fk_candidate_papers__project_id` — Foreign key to user_projects (CASCADE delete)
+
+#### Business Rules
+
+- Each project can have multiple candidate papers
+- Papers are created with basic info only (title, abstract, link)
+- LLM analysis fields are NULL until processing is triggered
+- `is_processed_by_llm` is false by default, set to true after analysis
+- Papers are automatically deleted when project is deleted (CASCADE)
+- `updated_at` is automatically updated on any change
+- Semantic similarity is stored with 4 decimal precision (e.g., 0.8547)
+- C1/C2 scores are stored with 2 decimal precision (e.g., 85.50)
+- Overlap levels must be one of: 'high', 'medium', 'low'
+
+---
+
 ## Indexes
 
 ### Primary Indexes (Automatic)
@@ -273,6 +336,7 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 |-----------|------|-------------|
 | `init` | 2025-12-XX | Initial schema with users and auth tables |
 | `add_user_projects` | 2025-12-XX | Added user_projects table |
+| `add_candidate_papers` | 2025-12-31 | Added candidate_papers table for paper analysis |
 
 ### Running Migrations
 
@@ -373,9 +437,9 @@ VACUUM ANALYZE user_projects;
 
 ### Current Schema (as of 2025-12-31)
 
-- **Tables**: 5
-- **Foreign Keys**: 4
-- **Indexes**: 14 (including primary keys)
+- **Tables**: 6
+- **Foreign Keys**: 5
+- **Indexes**: 17 (including primary keys)
 - **Unique Constraints**: 5
 
 ### Estimated Storage
