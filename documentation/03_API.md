@@ -29,13 +29,19 @@ Complete API reference for the Literature Review System.
 13. [PATCH /v1/user-projects/:id](#patch-v1user-projectsid) - Update project
 14. [DELETE /v1/user-projects/:id](#delete-v1user-projectsid) - Delete project
 
+### Candidate Papers (Protected)
+15. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
+16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
+17. [GET /v1/user-projects/:projectId/papers/:paperId](#get-v1user-projectsprojectidpaperspaperid) - Get single paper
+18. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
+
 ### LLM Pipeline (Protected)
-15. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-16. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-17. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+19. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+20. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+21. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### Health Check (Public)
-18. [GET /v1/health](#get-v1health) - Health check
+22. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
@@ -551,6 +557,485 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 - User can only access their own projects
 - Authorization check ensures project belongs to authenticated user
+
+---
+
+## Candidate Papers Endpoints
+
+### POST /v1/user-projects/:projectId/papers
+
+**Description**: Add a new candidate paper to a research project for analysis.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+
+**Request Body**:
+```typescript
+{
+  paperTitle: string;          // Paper title (1-500 characters)
+  paperAbstract: string;       // Paper abstract (1-10000 characters)
+  paperDownloadLink?: string;  // Optional download link (URL)
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (201 Created):
+```typescript
+{
+  success: true;
+  data: {
+    paper: {
+      id: string;
+      projectId: string;
+      paperTitle: string;
+      paperAbstract: string;
+      paperDownloadLink: string | null;
+      isProcessedByLlm: boolean;           // false (default)
+      semanticSimilarity: number | null;   // null (not yet processed)
+      similarityModelName: string | null;  // null
+      problemOverlap: string | null;       // null
+      domainOverlap: string | null;        // null
+      constraintOverlap: string | null;    // null
+      c1Score: number | null;              // null
+      c1Justification: string | null;      // null
+      c1Strengths: string | null;          // null
+      c1Weaknesses: string | null;         // null
+      c2Score: number | null;              // null
+      c2Justification: string | null;      // null
+      c2ContributionType: string | null;   // null
+      c2RelevanceAreas: string | null;     // null
+      researchGaps: string | null;         // null
+      userNovelty: string | null;          // null
+      modelUsed: string | null;            // null
+      inputTokensUsed: number | null;      // null
+      outputTokensUsed: number | null;     // null
+      processedAt: string | null;          // null
+      createdAt: string;                   // ISO 8601 timestamp
+      updatedAt: string;                   // ISO 8601 timestamp
+    };
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "paperTitle": "Attention Is All You Need",
+  "paperAbstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
+  "paperDownloadLink": "https://arxiv.org/pdf/1706.03762"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (201 Created)**:
+```json
+{
+  "success": true,
+  "data": {
+    "paper": {
+      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
+      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "paperTitle": "Attention Is All You Need",
+      "paperAbstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...",
+      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762",
+      "isProcessedByLlm": false,
+      "semanticSimilarity": null,
+      "similarityModelName": null,
+      "problemOverlap": null,
+      "domainOverlap": null,
+      "constraintOverlap": null,
+      "c1Score": null,
+      "c1Justification": null,
+      "c1Strengths": null,
+      "c1Weaknesses": null,
+      "c2Score": null,
+      "c2Justification": null,
+      "c2ContributionType": null,
+      "c2RelevanceAreas": null,
+      "researchGaps": null,
+      "userNovelty": null,
+      "modelUsed": null,
+      "inputTokensUsed": null,
+      "outputTokensUsed": null,
+      "processedAt": null,
+      "createdAt": "2025-12-31T15:00:00.000Z",
+      "updatedAt": "2025-12-31T15:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input data | Title too long |
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Project not found | Invalid project ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+**Sample Error Response**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Paper title must be between 1 and 500 characters",
+    "details": {
+      "field": "paperTitle",
+      "constraint": "maxLength",
+      "value": 500
+    }
+  }
+}
+```
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Paper is created with basic info only (title, abstract, link)
+- All LLM analysis fields are NULL until processing is triggered via `/process` endpoint
+- `isProcessedByLlm` is false by default
+- User must own the project to add papers
+- `paperDownloadLink` is optional (can be null)
+- Papers are automatically deleted when project is deleted (CASCADE)
+
+---
+
+### GET /v1/user-projects/:projectId/papers
+
+**Description**: Get all candidate papers for a specific project.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+
+**Query Parameters**: None
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    papers: Array<CandidatePaper>;  // Array of paper objects
+    count: number;                   // Total number of papers
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "papers": [
+      {
+        "id": "paper_123e4567-e89b-12d3-a456-426614174000",
+        "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+        "paperTitle": "Attention Is All You Need",
+        "paperAbstract": "The dominant sequence transduction models...",
+        "paperDownloadLink": "https://arxiv.org/pdf/1706.03762",
+        "isProcessedByLlm": false,
+        "semanticSimilarity": null,
+        "createdAt": "2025-12-31T15:00:00.000Z",
+        "updatedAt": "2025-12-31T15:00:00.000Z"
+      },
+      {
+        "id": "paper_987f6543-e21c-34b5-d678-537825285111",
+        "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+        "paperTitle": "BERT: Pre-training of Deep Bidirectional Transformers",
+        "paperAbstract": "We introduce a new language representation model...",
+        "paperDownloadLink": "https://arxiv.org/pdf/1810.04805",
+        "isProcessedByLlm": true,
+        "semanticSimilarity": 0.8547,
+        "c1Score": 75.50,
+        "c2Score": 85.25,
+        "createdAt": "2025-12-31T14:00:00.000Z",
+        "updatedAt": "2025-12-31T14:30:00.000Z"
+      }
+    ],
+    "count": 2
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Project not found | Invalid project ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns all papers for the project, ordered by creation date (newest first)
+- Includes both processed and unprocessed papers
+- User must own the project to view papers
+- Empty array returned if project has no papers
+
+---
+
+### GET /v1/user-projects/:projectId/papers/:paperId
+
+**Description**: Get a specific candidate paper by ID.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+- `:paperId` (string, required) — Paper UUID
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    paper: CandidatePaper;  // Full paper object with all fields
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers/paper_123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "paper": {
+      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
+      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "paperTitle": "Attention Is All You Need",
+      "paperAbstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...",
+      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762",
+      "isProcessedByLlm": true,
+      "semanticSimilarity": 0.8547,
+      "similarityModelName": "text-embedding-ada-002",
+      "problemOverlap": "high",
+      "domainOverlap": "high",
+      "constraintOverlap": "medium",
+      "c1Score": 75.50,
+      "c1Justification": "This paper presents a competing approach to sequence modeling...",
+      "c1Strengths": "Novel architecture, strong empirical results, widely adopted",
+      "c1Weaknesses": "Limited to sequence tasks, high computational cost",
+      "c2Score": 85.25,
+      "c2Justification": "Provides foundational techniques applicable to our research...",
+      "c2ContributionType": "Methodological foundation",
+      "c2RelevanceAreas": "Attention mechanisms, transformer architecture",
+      "researchGaps": "Does not address multi-modal inputs, limited interpretability",
+      "userNovelty": "Our work extends this to multi-modal scenarios with interpretability",
+      "modelUsed": "gpt-4o-mini",
+      "inputTokensUsed": 1250,
+      "outputTokensUsed": 850,
+      "processedAt": "2025-12-31T15:30:00.000Z",
+      "createdAt": "2025-12-31T15:00:00.000Z",
+      "updatedAt": "2025-12-31T15:30:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Paper or project not found | Invalid paper ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns complete paper details including all LLM analysis fields
+- User must own the project to view the paper
+- Paper must belong to the specified project
+
+---
+
+### DELETE /v1/user-projects/:projectId/papers/:paperId
+
+**Description**: Delete a candidate paper from a project.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+- `:paperId` (string, required) — Paper UUID
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;  // "Paper deleted successfully"
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+DELETE /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers/paper_123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Paper deleted successfully"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Paper or project not found | Invalid paper ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Permanently deletes the paper from the database
+- User must own the project to delete papers
+- Paper must belong to the specified project
+- Cannot be undone
 
 ---
 
