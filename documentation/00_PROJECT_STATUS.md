@@ -49,6 +49,7 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ### ✅ Documentation (Production-Ready)
 - **10 core documentation files** (00-09) following rules.md
 - **ER diagram** for database schema (MANDATORY requirement met)
+- **6 LLM workflow diagrams** (activity + sequence for 3 stages)
 - **48 legacy files archived** with consolidation map
 - **Single source of truth** established
 - **100% compliance** with rules.md documentation standards
@@ -114,6 +115,11 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ## Recent Changes
 
 ### 2025-12-31
+- **✅ PHASE 3 COMPLETE: Diagrams**
+  - Created 6 PlantUML diagrams for LLM workflows
+  - Activity diagrams for all 3 stages (Intent, Queries, Scoring)
+  - Sequence diagrams for all 3 stages
+  - Updated API documentation with diagram references
 - **✅ PHASE 2 COMPLETE: Documentation Consolidation**
   - Archived 48 legacy documentation files to `documentation/archive/`
   - Clean documentation structure: 10 core files + ER diagram
