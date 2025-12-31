@@ -19,6 +19,7 @@ Complete database schema documentation for the Literature Review System.
    - [refresh_tokens](#table-refresh_tokens)
    - [user_projects](#table-user_projects)
    - [candidate_papers](#table-candidate_papers)
+   - [llm_usage_logs](#table-llm_usage_logs)
 4. [Indexes](#indexes)
 5. [Migrations](#migrations)
 6. [Backup & Recovery](#backup--recovery)
@@ -27,7 +28,7 @@ Complete database schema documentation for the Literature Review System.
 
 ## Overview
 
-The database consists of **6 tables** organized into two main groups:
+The database consists of **7 tables** organized into three main groups:
 
 ### Authentication Tables
 - `users` - Core user accounts
@@ -39,7 +40,10 @@ The database consists of **6 tables** organized into two main groups:
 - `user_projects` - User research projects
 - `candidate_papers` - Candidate papers for analysis
 
-**Total Relationships**: 5 foreign keys (all with CASCADE delete)
+### LLM Tracking Tables
+- `llm_usage_logs` - LLM API usage tracking for billing
+
+**Total Relationships**: 8 foreign keys (all with CASCADE or SET NULL delete)
 
 ---
 
@@ -499,6 +503,95 @@ VACUUM ANALYZE user_projects;
 - `created_at` (TIMESTAMP)
 
 **Status**: Not yet implemented
+
+---
+
+## Table: llm_usage_logs
+
+**Description**: Tracks all LLM API calls for billing, analytics, and cost monitoring. Records token usage, costs, performance metrics, and metadata for every OpenAI API call made by the system.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique log entry identifier |
+| user_id | UUID | NOT NULL, FK → users(id) | User who made the API call |
+| project_id | UUID | NULL, FK → user_projects(id) | Associated project (if applicable) |
+| paper_id | UUID | NULL, FK → candidate_papers(id) | Associated paper (if applicable) |
+| stage | VARCHAR | NOT NULL | Pipeline stage ('intent', 'queries', 'score', etc.) |
+| model_name | VARCHAR | NOT NULL | AI model used (e.g., 'gpt-4o-mini', 'gpt-4') |
+| provider | VARCHAR | NOT NULL, DEFAULT 'openai' | LLM provider ('openai', 'anthropic', etc.) |
+| input_tokens | INTEGER | NOT NULL | Number of input tokens |
+| output_tokens | INTEGER | NOT NULL | Number of output tokens |
+| total_tokens | INTEGER | NOT NULL | Total tokens (input + output) |
+| input_cost_cents | INTEGER | NULL | Cost of input tokens in cents |
+| output_cost_cents | INTEGER | NULL | Cost of output tokens in cents |
+| total_cost_cents | INTEGER | NULL | Total cost in cents |
+| duration_ms | INTEGER | NULL | API call duration in milliseconds |
+| request_id | VARCHAR | NULL | OpenAI request ID for debugging |
+| status | VARCHAR | NOT NULL, DEFAULT 'success' | Call status ('success', 'error', 'timeout') |
+| error_message | TEXT | NULL | Error message if status is 'error' |
+| metadata | TEXT | NULL | Additional JSON metadata |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | When the API call was made |
+
+### Indexes
+
+- `idx_llm_usage_logs__user_id_created_at` — Fast queries by user over time
+- `idx_llm_usage_logs__project_id_created_at` — Fast queries by project over time
+- `idx_llm_usage_logs__stage_created_at` — Fast queries by stage over time
+- `idx_llm_usage_logs__created_at` — Time-based queries for billing periods
+
+### Constraints
+
+- `fk_llm_usage_logs__user_id` — Foreign key to users table (CASCADE delete)
+- `fk_llm_usage_logs__project_id` — Foreign key to user_projects table (SET NULL on delete)
+- `fk_llm_usage_logs__paper_id` — Foreign key to candidate_papers table (SET NULL on delete)
+
+### Relationships
+
+- **users** (1:N) — Each user can have many LLM usage logs
+- **user_projects** (1:N, optional) — Each project can have many LLM usage logs
+- **candidate_papers** (1:N, optional) — Each paper can have many LLM usage logs
+
+### Business Logic
+
+- **Cost Calculation**: Costs are stored in cents to avoid floating-point precision issues
+  - Example: $1.25 is stored as 125 cents
+- **Pricing**: Based on current OpenAI pricing per 1M tokens
+  - gpt-4o-mini: $0.15 input, $0.60 output per 1M tokens
+  - gpt-4o: $2.50 input, $10.00 output per 1M tokens
+  - gpt-4: $30.00 input, $60.00 output per 1M tokens
+- **Performance Tracking**: `duration_ms` helps identify slow API calls
+- **Error Tracking**: Failed calls are logged with `status='error'` and error details
+- **Billing Periods**: Use `created_at` with date range queries for monthly billing
+- **Analytics**: Group by `stage` or `model_name` for usage insights
+
+### Usage Examples
+
+**Get user's monthly bill**:
+```sql
+SELECT 
+  SUM(total_cost_cents) / 100.0 AS total_cost_usd,
+  COUNT(*) AS total_calls,
+  SUM(total_tokens) AS total_tokens
+FROM llm_usage_logs
+WHERE user_id = 'user_123'
+  AND created_at >= '2025-01-01'
+  AND created_at < '2025-02-01';
+```
+
+**Get usage by stage**:
+```sql
+SELECT 
+  stage,
+  COUNT(*) AS calls,
+  SUM(total_tokens) AS tokens,
+  SUM(total_cost_cents) / 100.0 AS cost_usd
+FROM llm_usage_logs
+WHERE user_id = 'user_123'
+GROUP BY stage
+ORDER BY cost_usd DESC;
+```
 
 ---
 

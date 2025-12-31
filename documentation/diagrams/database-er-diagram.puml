@@ -95,13 +95,39 @@ entity "candidate_papers" as papers {
   * updated_at : TIMESTAMP
 }
 
+entity "llm_usage_logs" as llm_logs {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  project_id : UUID <<FK>>
+  paper_id : UUID <<FK>>
+  * stage : VARCHAR(50)
+  * model_name : VARCHAR(100)
+  * provider : VARCHAR(50)
+  * input_tokens : INTEGER
+  * output_tokens : INTEGER
+  * total_tokens : INTEGER
+  input_cost_cents : INTEGER
+  output_cost_cents : INTEGER
+  total_cost_cents : INTEGER
+  duration_ms : INTEGER
+  request_id : VARCHAR(255)
+  * status : VARCHAR(20)
+  error_message : TEXT
+  metadata : TEXT
+  * created_at : TIMESTAMP
+}
+
 ' Relationships
 
 users ||--o{ email_tokens : "has"
 users ||--o{ password_tokens : "has"
 users ||--o{ refresh_tokens : "has"
 users ||--o{ projects : "owns"
+users ||--o{ llm_logs : "generates"
 projects ||--o{ papers : "contains"
+projects ||--o{ llm_logs : "tracks"
+papers ||--o{ llm_logs : "tracks"
 
 ' Notes
 
@@ -150,4 +176,15 @@ note right of papers
   - Cascade delete with project
 end note
 
+note right of llm_logs
+  LLM API usage tracking
+  - Tracks every OpenAI API call
+  - Records tokens and costs
+  - Performance metrics (duration)
+  - Used for billing and analytics
+  - Cascade delete with user
+  - SET NULL on project/paper delete
+end note
+
 @enduml
+

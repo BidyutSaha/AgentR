@@ -41,8 +41,13 @@ Complete API reference for the Literature Review System.
 21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
 22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
+### LLM Usage Tracking (Protected)
+23. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage
+24. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage
+25. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (admin)
+
 ### Health Check (Public)
-23. [GET /v1/health](#get-v1health) - Health check
+26. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
@@ -1727,6 +1732,369 @@ These diagrams show:
 - Structured prompt engineering for consistent output
 - Response is cached for performance (TODO)
 - Costs approximately $0.0001 per request
+
+
+---
+
+## LLM Usage Tracking Endpoints
+
+### GET /v1/llm-usage/my-usage
+
+**Description**: Get current user's LLM usage statistics and costs for billing purposes.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Query Parameters**:
+- `startDate` (string, optional) — ISO 8601 date string (e.g., "2025-01-01")
+- `endDate` (string, optional) — ISO 8601 date string (e.g., "2025-01-31")
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    logs: Array<LlmUsageLog>;
+    summary: {
+      totalCalls: number;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalTokens: number;
+      totalCostCents: number;
+      totalCostUsd: number;
+      byStage: Record<string, {
+        count: number;
+        totalTokens: number;
+        totalCostCents: number;
+      }>;
+      byModel: Record<string, {
+        count: number;
+        totalTokens: number;
+        totalCostCents: number;
+      }>;
+    };
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/llm-usage/my-usage?startDate=2025-01-01&endDate=2025-01-31
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "totalCalls": 150,
+      "totalInputTokens": 30000,
+      "totalOutputTokens": 15000,
+      "totalTokens": 45000,
+      "totalCostCents": 125,
+      "totalCostUsd": 1.25,
+      "byStage": {
+        "intent": {
+          "count": 50,
+          "totalTokens": 15000,
+          "totalCostCents": 45
+        },
+        "score": {
+          "count": 100,
+          "totalTokens": 30000,
+          "totalCostCents": 80
+        }
+      },
+      "byModel": {
+        "gpt-4o-mini": {
+          "count": 150,
+          "totalTokens": 45000,
+          "totalCostCents": 125
+        }
+      }
+    },
+    "logs": [
+      {
+        "id": "log_123",
+        "stage": "intent",
+        "modelName": "gpt-4o-mini",
+        "inputTokens": 200,
+        "outputTokens": 100,
+        "totalTokens": 300,
+        "totalCostCents": 1,
+        "durationMs": 1500,
+        "createdAt": "2025-01-15T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple query operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns all LLM usage for the authenticated user
+- Date range is optional - without dates, returns all usage
+- Costs are calculated based on current OpenAI pricing
+- Breakdown by stage shows usage per pipeline stage (intent, queries, score)
+- Breakdown by model shows usage per AI model
+- Useful for user billing dashboards
+
+---
+
+### GET /v1/llm-usage/project/:projectId
+
+**Description**: Get LLM usage statistics for a specific project.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+
+**Query Parameters**:
+- `startDate` (string, optional) — ISO 8601 date string
+- `endDate` (string, optional) — ISO 8601 date string
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    logs: Array<LlmUsageLog>;
+    summary: {
+      totalCalls: number;
+      totalTokens: number;
+      totalCostCents: number;
+      totalCostUsd: number;
+    };
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/llm-usage/project/proj_550e8400-e29b-41d4-a716-446655440000?startDate=2025-01-01
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "totalCalls": 75,
+      "totalTokens": 22500,
+      "totalCostCents": 62,
+      "totalCostUsd": 0.62
+    },
+    "logs": [...]
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Project not found | Invalid project ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple query operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns LLM usage for a specific project only
+- Useful for tracking costs per research project
+- Can help identify which projects are most expensive
+
+---
+
+### GET /v1/llm-usage/admin/all-users
+
+**Description**: Get billing summary for all users (admin only).
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Query Parameters**:
+- `startDate` (string, optional) — ISO 8601 date string
+- `endDate` (string, optional) — ISO 8601 date string
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    users: Array<{
+      user: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+      };
+      totalCalls: number;
+      totalTokens: number;
+      totalCostCents: number;
+      totalCostUsd: number;
+    }>;
+    totalUsers: number;
+    grandTotalCostUsd: number;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/llm-usage/admin/all-users?startDate=2025-01-01&endDate=2025-01-31
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "user": {
+          "id": "user_123",
+          "email": "john@example.com",
+          "firstName": "John",
+          "lastName": "Doe"
+        },
+        "totalCalls": 150,
+        "totalTokens": 45000,
+        "totalCostCents": 125,
+        "totalCostUsd": 1.25
+      },
+      {
+        "user": {
+          "id": "user_456",
+          "email": "jane@example.com",
+          "firstName": "Jane",
+          "lastName": "Smith"
+        },
+        "totalCalls": 200,
+        "totalTokens": 60000,
+        "totalCostCents": 180,
+        "totalCostUsd": 1.80
+      }
+    ],
+    "totalUsers": 2,
+    "grandTotalCostUsd": 3.05
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not admin | User is not an admin |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple query operation)
+
+---
+
+#### Business Logic Notes
+
+- **Admin only** - requires admin role (TODO: implement admin middleware)
+- Returns aggregated billing data for all users
+- Useful for platform-wide cost monitoring
+- Can be used to generate invoices or billing reports
+- Helps identify high-usage users
 
 ---
 
