@@ -48,14 +48,20 @@ Guide for deploying the Literature Review System to production.
 │  - Auto SSL               │  │  - Auto SSL               │
 └───────────────────────────┘  └───────────────────────────┘
                                               │
-                                    ┌─────────┴─────────┐
-                                    │                   │
-                                    ▼                   ▼
-                        ┌───────────────────┐  ┌───────────────────┐
-                        │  PostgreSQL       │  │  Email Service    │
-                        │  (Supabase/       │  │  (SendGrid/       │
-                        │   Neon/Railway)   │  │   AWS SES)        │
-                        └───────────────────┘  └───────────────────┘
+                                    ┌─────────┼─────────┐
+                                    │         │         │
+                                    ▼         ▼         ▼
+                        ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+                        │  PostgreSQL   │ │  OpenAI API   │ │ Email Service │
+                        │  (Supabase/   │ │               │ │ (SendGrid/    │
+                        │   Neon/       │ │ - GPT-4o      │ │  AWS SES)     │
+                        │   Railway)    │ │ - GPT-4o-mini │ │               │
+                        │               │ │ - Embeddings  │ │ - Verification│
+                        │ - Users       │ │               │ │ - Password    │
+                        │ - Tokens      │ │ **CRITICAL**  │ │   Reset       │
+                        │ - Projects    │ │ **SERVICE**   │ │ - Notifs      │
+                        │ - Papers      │ │               │ │               │
+                        └───────────────┘ └───────────────┘ └───────────────┘
 ```
 
 ---
@@ -76,11 +82,17 @@ Guide for deploying the Literature Review System to production.
    - Vercel (recommended) or Netlify
    - Free tier available
 
-4. **Email Service**:
+4. **OpenAI API** (CRITICAL):
+   - OpenAI Platform account
+   - API key with credits
+   - Pay-as-you-go pricing
+   - **Required for all LLM functionality**
+
+5. **Email Service**:
    - SendGrid or AWS SES or Mailgun
    - Free tier available (SendGrid: 100 emails/day)
 
-5. **Domain** (optional):
+6. **Domain** (optional):
    - Namecheap, Google Domains, etc.
    - ~$10/year
 
@@ -531,26 +543,67 @@ If deployment fails:
 - **Backend**: Railway/Render free tier
 - **Database**: Supabase/Neon free tier
 - **Frontend**: Vercel/Netlify free tier
+- **OpenAI API**: Pay-as-you-go (~$5-10/month for testing)
 - **Email**: SendGrid free tier (100 emails/day)
-- **Total**: $0/month
+- **Total**: ~$5-10/month
+
+**OpenAI Usage Estimate** (Testing):
+- ~100 API calls/day
+- GPT-4o-mini: $0.15 per 1M input tokens, $0.60 per 1M output tokens
+- Estimated: ~$5-10/month
+
+---
 
 ### Production (Small Scale)
 
 - **Backend**: Railway Hobby ($5/month)
 - **Database**: Supabase Pro ($25/month)
 - **Frontend**: Vercel Pro ($20/month)
+- **OpenAI API**: Pay-as-you-go (~$50-100/month)
 - **Email**: SendGrid Essentials ($15/month for 50k emails)
 - **Domain**: $10/year
-- **Total**: ~$65/month
+- **Total**: ~$115-165/month
+
+**OpenAI Usage Estimate** (Small Scale):
+- ~1,000 API calls/day (30k/month)
+- Average 500 tokens input, 300 tokens output per call
+- GPT-4o-mini pricing
+- Estimated: ~$50-100/month
+
+---
 
 ### Production (Medium Scale)
 
 - **Backend**: Railway Team ($20/month)
 - **Database**: Supabase Pro ($25/month)
 - **Frontend**: Vercel Pro ($20/month)
+- **OpenAI API**: Pay-as-you-go (~$200-500/month)
 - **Email**: SendGrid Pro ($90/month for 100k emails)
 - **Monitoring**: Sentry Team ($26/month)
-- **Total**: ~$180/month
+- **Total**: ~$380-680/month
+
+**OpenAI Usage Estimate** (Medium Scale):
+- ~5,000 API calls/day (150k/month)
+- Average 500 tokens input, 300 tokens output per call
+- GPT-4o-mini pricing
+- Estimated: ~$200-500/month
+
+---
+
+### OpenAI Cost Optimization Tips
+
+1. **Use GPT-4o-mini** instead of GPT-4o (10x cheaper)
+2. **Implement caching** for repeated queries
+3. **Optimize prompts** to reduce token usage
+4. **Set max_tokens** limits to control costs
+5. **Monitor usage** via OpenAI dashboard
+6. **Set spending limits** to avoid surprises
+
+**Current Model Pricing** (as of 2025-12-31):
+- **GPT-4o-mini**: $0.15/1M input tokens, $0.60/1M output tokens
+- **GPT-4o**: $2.50/1M input tokens, $10.00/1M output tokens
+
+**For latest pricing**: https://openai.com/api/pricing/
 
 ---
 
