@@ -3,6 +3,7 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '../../prompts/prompts.stage2';
 import { QueriesRequest, QueriesOutput, queriesOutputSchema } from './queries.schema';
 import logger from '../../config/logger';
 import { AppError, ErrorCode } from '../../middlewares/errorHandler';
+import { LlmUsageMetadata } from '../../types/api';
 
 /**
  * Build user prompt with intent data
@@ -17,7 +18,10 @@ function buildUserPrompt(intent: any): string {
         .replace('{KEYWORDS}', intent.keywords_seed.join(', '));
 }
 
-export async function processQueries(request: QueriesRequest): Promise<QueriesOutput> {
+export async function processQueries(request: QueriesRequest): Promise<{
+    output: QueriesOutput;
+    usage?: LlmUsageMetadata;
+}> {
     try {
         logger.info({
             action: 'queries_processing_start',
@@ -37,7 +41,7 @@ export async function processQueries(request: QueriesRequest): Promise<QueriesOu
         ];
 
         // Call LLM with JSON mode
-        const response = await llmProvider.complete(messages, {
+        const llmResponse = await llmProvider.complete(messages, {
             temperature: 0.4, // Slightly higher for more creative query variations
             jsonMode: true,
         });
@@ -45,18 +49,18 @@ export async function processQueries(request: QueriesRequest): Promise<QueriesOu
         // Parse JSON response
         let parsedResponse: any;
         try {
-            parsedResponse = JSON.parse(response);
+            parsedResponse = JSON.parse(llmResponse.content);
         } catch (parseError) {
             logger.error({
                 action: 'queries_json_parse_error',
-                response: response,
+                response: llmResponse.content,
                 error: parseError,
             });
             throw new AppError(
                 ErrorCode.LLM_ERROR,
                 'Failed to parse LLM response as JSON',
                 500,
-                { response }
+                { response: llmResponse.content }
             );
         }
 
@@ -75,7 +79,20 @@ export async function processQueries(request: QueriesRequest): Promise<QueriesOu
             booleanQueryLength: validatedOutput.booleanQuery.length,
         });
 
-        return validatedOutput;
+        // Extract usage metadata
+        const usage: LlmUsageMetadata | undefined = llmResponse.usage ? {
+            modelName: llmResponse.modelName || 'unknown',
+            inputTokens: llmResponse.usage.promptTokens,
+            outputTokens: llmResponse.usage.completionTokens,
+            totalTokens: llmResponse.usage.totalTokens,
+            durationMs: llmResponse.durationMs,
+            requestId: llmResponse.requestId,
+        } : undefined;
+
+        return {
+            output: validatedOutput,
+            usage,
+        };
     } catch (error: any) {
         logger.error({
             action: 'queries_processing_error',

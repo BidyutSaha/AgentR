@@ -15,14 +15,15 @@ export async function postIntent(req: Request, res: Response): Promise<void> {
     const requestData: IntentRequest = req.body;
 
     // Process intent
-    const output = await processIntent(requestData);
+    const result = await processIntent(requestData);
 
     // Build stage output
     const stageOutput: StageOutput = {
         stage: 'intent',
         version: '1.0',
         generatedAt: new Date().toISOString(),
-        output,
+        output: result.output,
+        usage: result.usage,
     };
 
     // Build API response
@@ -44,14 +45,15 @@ export async function postQueries(req: Request, res: Response): Promise<void> {
     const requestData: QueriesRequest = req.body;
 
     // Process queries
-    const output = await processQueries(requestData);
+    const result = await processQueries(requestData);
 
     // Build stage output
     const stageOutput: StageOutput = {
         stage: 'queries',
         version: '1.0',
         generatedAt: new Date().toISOString(),
-        output,
+        output: result.output,
+        usage: result.usage,
     };
 
     // Build API response
@@ -74,14 +76,15 @@ export async function postCategorize(req: Request, res: Response): Promise<void>
     const requestData: CategorizeRequest = req.body;
 
     // Process paper scoring
-    const output = await processCategorize(requestData);
+    const result = await processCategorize(requestData);
 
     // Build stage output
     const stageOutput: StageOutput = {
         stage: 'score',
         version: '1.0',
         generatedAt: new Date().toISOString(),
-        output,
+        output: result.output,
+        usage: result.usage,
     };
 
     // Build API response

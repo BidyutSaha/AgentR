@@ -29,6 +29,18 @@ export interface ApiErrorResponse {
 export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 /**
+ * LLM usage metadata for tracking tokens and costs
+ */
+export interface LlmUsageMetadata {
+    modelName: string;           // e.g., 'gpt-4o-mini'
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    durationMs?: number;         // API call duration
+    requestId?: string;          // OpenAI request ID
+}
+
+/**
  * Stage output envelope (required for every stage)
  */
 export interface StageOutput<TInput = any, TOutput = any> {
@@ -37,6 +49,7 @@ export interface StageOutput<TInput = any, TOutput = any> {
     generatedAt: string;
     input?: TInput;
     output: TOutput;
+    usage?: LlmUsageMetadata;    // LLM usage tracking
 }
 
 /**

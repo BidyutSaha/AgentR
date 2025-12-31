@@ -14,11 +14,6 @@ export interface LLMCompletionOptions {
     jsonMode?: boolean;
 }
 
-export interface LLMProvider {
-    complete(messages: LLMMessage[], options?: LLMCompletionOptions): Promise<string>;
-    embed(text: string): Promise<number[]>;
-}
-
 export interface LLMResponse {
     content: string;
     usage?: {
@@ -26,4 +21,12 @@ export interface LLMResponse {
         completionTokens: number;
         totalTokens: number;
     };
+    modelName?: string;
+    durationMs?: number;
+    requestId?: string;
+}
+
+export interface LLMProvider {
+    complete(messages: LLMMessage[], options?: LLMCompletionOptions): Promise<LLMResponse>;
+    embed(text: string): Promise<number[]>;
 }

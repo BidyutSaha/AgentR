@@ -3,8 +3,12 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '../../prompts/prompts.stage1';
 import { IntentRequest, IntentOutput, intentOutputSchema } from './intent.schema';
 import logger from '../../config/logger';
 import { AppError, ErrorCode } from '../../middlewares/errorHandler';
+import { LlmUsageMetadata } from '../../types/api';
 
-export async function processIntent(request: IntentRequest): Promise<IntentOutput> {
+export async function processIntent(request: IntentRequest): Promise<{
+    output: IntentOutput;
+    usage?: LlmUsageMetadata;
+}> {
     try {
         logger.info({
             action: 'intent_processing_start',
@@ -24,7 +28,7 @@ export async function processIntent(request: IntentRequest): Promise<IntentOutpu
         ];
 
         // Call LLM with JSON mode
-        const response = await llmProvider.complete(messages, {
+        const llmResponse = await llmProvider.complete(messages, {
             temperature: 0.3, // Lower temperature for more consistent extraction
             jsonMode: true,
         });
@@ -32,18 +36,18 @@ export async function processIntent(request: IntentRequest): Promise<IntentOutpu
         // Parse JSON response
         let parsedResponse: any;
         try {
-            parsedResponse = JSON.parse(response);
+            parsedResponse = JSON.parse(llmResponse.content);
         } catch (parseError) {
             logger.error({
                 action: 'intent_json_parse_error',
-                response: response,
+                response: llmResponse.content,
                 error: parseError,
             });
             throw new AppError(
                 ErrorCode.LLM_ERROR,
                 'Failed to parse LLM response as JSON',
                 500,
-                { response }
+                { response: llmResponse.content }
             );
         }
 
@@ -62,7 +66,20 @@ export async function processIntent(request: IntentRequest): Promise<IntentOutpu
             methodologiesCount: validatedOutput.methodologies.length,
         });
 
-        return validatedOutput;
+        // Extract usage metadata
+        const usage: LlmUsageMetadata | undefined = llmResponse.usage ? {
+            modelName: llmResponse.modelName || 'unknown',
+            inputTokens: llmResponse.usage.promptTokens,
+            outputTokens: llmResponse.usage.completionTokens,
+            totalTokens: llmResponse.usage.totalTokens,
+            durationMs: llmResponse.durationMs,
+            requestId: llmResponse.requestId,
+        } : undefined;
+
+        return {
+            output: validatedOutput,
+            usage,
+        };
     } catch (error: any) {
         logger.error({
             action: 'intent_processing_error',

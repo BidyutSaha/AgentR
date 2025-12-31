@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { env } from '../config/env';
 import logger from '../config/logger';
-import { LLMProvider, LLMMessage, LLMCompletionOptions } from './llm.provider';
+import { LLMProvider, LLMMessage, LLMCompletionOptions, LLMResponse } from './llm.provider';
 import { AppError, ErrorCode } from '../middlewares/errorHandler';
 
 export class OpenAIProvider implements LLMProvider {
@@ -20,7 +20,9 @@ export class OpenAIProvider implements LLMProvider {
         }
     }
 
-    async complete(messages: LLMMessage[], options?: LLMCompletionOptions): Promise<string> {
+    async complete(messages: LLMMessage[], options?: LLMCompletionOptions): Promise<LLMResponse> {
+        const startTime = Date.now();
+
         try {
             const requestBody: any = {
                 model: this.model,
@@ -51,17 +53,32 @@ export class OpenAIProvider implements LLMProvider {
             });
 
             const content = response.data.choices[0]?.message?.content;
+            const usage = response.data.usage;
+            const requestId = response.data.id;
 
             if (!content) {
                 throw new Error('No content in OpenAI response');
             }
 
+            const durationMs = Date.now() - startTime;
+
             logger.info({
                 action: 'openai_completion_success',
-                usage: response.data.usage,
+                usage: usage,
+                durationMs,
             });
 
-            return content;
+            return {
+                content,
+                usage: usage ? {
+                    promptTokens: usage.prompt_tokens,
+                    completionTokens: usage.completion_tokens,
+                    totalTokens: usage.total_tokens,
+                } : undefined,
+                modelName: this.model,
+                durationMs,
+                requestId,
+            };
         } catch (error: any) {
             logger.error({
                 action: 'openai_completion_error',
