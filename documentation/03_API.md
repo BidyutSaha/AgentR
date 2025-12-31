@@ -33,16 +33,17 @@ Complete API reference for the Literature Review System.
 15. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
 16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
 17. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
-18. [PATCH /v1/user-projects/:projectId/papers/:paperId](#patch-v1user-projectsprojectidpaperspaperid) - Update paper
-19. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
+18. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
+19. [PATCH /v1/user-projects/:projectId/papers/:paperId](#patch-v1user-projectsprojectidpaperspaperid) - Update paper (legacy)
+20. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
 
 ### LLM Pipeline (Protected)
-20. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+21. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+22. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+23. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### Health Check (Public)
-23. [GET /v1/health](#get-v1health) - Health check
+24. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
@@ -1233,6 +1234,148 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - This is a convenience alias for `GET /v1/user-projects/:projectId/papers/:paperId`
 - It does not require `projectId` in the URL
 - It automatically verifies that the logged-in user owns the project associated with this paper
+
+---
+
+### PATCH /v1/papers/:paperId
+
+**Description**: Update a candidate paper by its ID (Simplified direct access).
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project containing the paper)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:paperId` (string, required) — Paper UUID
+
+**Request Body**:
+```typescript
+{
+  // Basic fields
+  paperTitle?: string;          // Optional: 1-500 characters
+  paperAbstract?: string;       // Optional: 1-10000 characters
+  paperDownloadLink?: string;   // Optional: valid URL or empty string
+
+  // LLM analysis fields (can be updated manually or via LLM processing)
+  isProcessedByLlm?: boolean;
+  semanticSimilarity?: number;
+  similarityModelName?: string;
+  
+  problemOverlap?: string;
+  domainOverlap?: string;
+  constraintOverlap?: string;
+  
+  c1Score?: number;
+  c1Justification?: string;
+  c1Strengths?: string | string[];    // Accepts string or array
+  c1Weaknesses?: string | string[];
+  
+  c2Score?: number;
+  c2Justification?: string;
+  c2ContributionType?: string;
+  c2RelevanceAreas?: string | string[];
+  
+  researchGaps?: string | string[];
+  userNovelty?: string;
+  
+  modelUsed?: string;
+  inputTokensUsed?: number;
+  outputTokensUsed?: number;
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    paper: CandidatePaper;  // Updated paper object
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+PATCH /v1/papers/paper_123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "paperTitle": "Updated Title",
+  "c1Score": 8.5,
+  "researchGaps": [
+    "Gap 1: Missing multi-modal support",
+    "Gap 2: Limited interpretability"
+  ]
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "paper": {
+      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
+      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "paperTitle": "Updated Title",
+      "paperAbstract": "The dominant sequence transduction models...",
+      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762",
+      "isProcessedByLlm": true,
+      "c1Score": 8.5,
+      "researchGaps": "[\"Gap 1: Missing multi-modal support\",\"Gap 2: Limited interpretability\"]",
+      "createdAt": "2025-12-31T15:00:00.000Z",
+      "updatedAt": "2025-12-31T16:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input data | Title too long |
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not paper owner | User doesn't own the parent project |
+| 404 | `NOT_FOUND` | Paper not found | Invalid paper ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- This is a convenience alias for `PATCH /v1/user-projects/:projectId/papers/:paperId`
+- It does not require `projectId` in the URL
+- It automatically verifies that the logged-in user owns the project associated with this paper
+- Array fields (like `researchGaps`, `c1Strengths`) are automatically converted to JSON strings for storage
+- Only provided fields are updated; omitted fields remain unchanged
+- `updatedAt` timestamp is automatically refreshed
 
 ---
 

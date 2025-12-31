@@ -5,6 +5,7 @@ import {
     getCandidatePaperById,
     getCandidatePaperByIdOnly,
     updateCandidatePaper,
+    updateCandidatePaperByIdOnly,
     deleteCandidatePaper,
 } from '../services/candidatePaper/candidatePaper.service';
 import logger from '../config/logger';
@@ -123,6 +124,36 @@ export async function handleGetCandidatePaperByIdOnly(
         });
     } catch (error) {
         logger.error('Error getting candidate paper:', error);
+        next(error);
+    }
+}
+
+/**
+ * Update a single candidate paper by ID (without project ID)
+ * 
+ * @route PATCH /v1/papers/:paperId
+ * @access Protected
+ */
+export async function handleUpdateCandidatePaperByIdOnly(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const { paperId } = req.params;
+        const userId = req.userId!; // From auth middleware
+        const updateData = req.body;
+
+        const paper = await updateCandidatePaperByIdOnly(paperId, userId, updateData);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                paper,
+            },
+        });
+    } catch (error) {
+        logger.error('Error updating candidate paper:', error);
         next(error);
     }
 }

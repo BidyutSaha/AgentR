@@ -193,6 +193,93 @@ export async function getCandidatePaperByIdOnly(
 }
 
 /**
+ * Update a candidate paper by ID (without project ID)
+ * 
+ * @param paperId - ID of the paper
+ * @param userId - ID of the user (for authorization check)
+ * @param data - Updated paper data
+ * @returns Updated candidate paper
+ * @throws {Error} If paper not found or user doesn't own project
+ */
+export async function updateCandidatePaperByIdOnly(
+    paperId: string,
+    userId: string,
+    data: UpdateCandidatePaperInput
+): Promise<SafeCandidatePaper> {
+    // Get paper with project info
+    const existingPaper = await prisma.candidatePaper.findUnique({
+        where: { id: paperId },
+        include: {
+            project: true,
+        },
+    });
+
+    if (!existingPaper) {
+        throw new Error('Paper not found');
+    }
+
+    // Verify ownership
+    if (existingPaper.project.userId !== userId) {
+        throw new Error('You do not have permission to update this paper');
+    }
+
+    // Helper to process array or string fields
+    const processArrayField = (field: string | string[] | undefined): string | undefined => {
+        if (Array.isArray(field)) {
+            return JSON.stringify(field);
+        }
+        return field;
+    };
+
+    // Update the paper
+    const updatedPaper = await prisma.candidatePaper.update({
+        where: { id: paperId },
+        data: {
+            // Basic Info
+            ...(data.paperTitle && { paperTitle: data.paperTitle }),
+            ...(data.paperAbstract && { paperAbstract: data.paperAbstract }),
+            ...(data.paperDownloadLink !== undefined && {
+                paperDownloadLink: data.paperDownloadLink || null
+            }),
+
+            // LLM Fields
+            ...(data.isProcessedByLlm !== undefined && { isProcessedByLlm: data.isProcessedByLlm }),
+            ...(data.semanticSimilarity !== undefined && { semanticSimilarity: data.semanticSimilarity }),
+            ...(data.similarityModelName && { similarityModelName: data.similarityModelName }),
+
+            ...(data.problemOverlap && { problemOverlap: data.problemOverlap }),
+            ...(data.domainOverlap && { domainOverlap: data.domainOverlap }),
+            ...(data.constraintOverlap && { constraintOverlap: data.constraintOverlap }),
+
+            ...(data.c1Score !== undefined && { c1Score: data.c1Score }),
+            ...(data.c1Justification && { c1Justification: data.c1Justification }),
+            ...(data.c1Strengths !== undefined && { c1Strengths: processArrayField(data.c1Strengths) }),
+            ...(data.c1Weaknesses !== undefined && { c1Weaknesses: processArrayField(data.c1Weaknesses) }),
+
+            ...(data.c2Score !== undefined && { c2Score: data.c2Score }),
+            ...(data.c2Justification && { c2Justification: data.c2Justification }),
+            ...(data.c2ContributionType && { c2ContributionType: data.c2ContributionType }),
+            ...(data.c2RelevanceAreas !== undefined && { c2RelevanceAreas: processArrayField(data.c2RelevanceAreas) }),
+
+            ...(data.researchGaps !== undefined && { researchGaps: processArrayField(data.researchGaps) }),
+            ...(data.userNovelty && { userNovelty: data.userNovelty }),
+
+            ...(data.modelUsed && { modelUsed: data.modelUsed }),
+            ...(data.inputTokensUsed !== undefined && { inputTokensUsed: data.inputTokensUsed }),
+            ...(data.outputTokensUsed !== undefined && { outputTokensUsed: data.outputTokensUsed }),
+
+            ...(data.isProcessedByLlm !== undefined && {
+                processedAt: data.isProcessedByLlm ? new Date() : null
+            }),
+        },
+    });
+
+    logger.info(`Candidate paper updated: ${paperId}`);
+
+    return toSafeCandidatePaper(updatedPaper);
+}
+
+/**
  * Update a candidate paper
  * 
  * Allows updating basic paper information (title, abstract, link).
