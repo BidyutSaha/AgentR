@@ -1,0 +1,22 @@
+# Antigravity Project Configuration
+
+# Custom Rules File
+rules_file = "rules.md"
+
+# Project-specific settings
+project_name = "Paper Agent - Literature Review System"
+project_type = "backend_api"
+
+# Documentation paths
+docs_dir = "documentation"
+diagrams_dir = "documentation/diagrams"
+
+# Code standards
+enforce_naming_conventions = true
+require_api_documentation = true
+require_diagrams_for_complex_flows = true
+require_post_implementation_checklist = true
+
+# Testing
+min_test_coverage = 70
+require_test_documentation = true

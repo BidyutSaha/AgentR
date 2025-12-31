@@ -472,7 +472,9 @@ const validatedData = createProjectSchema.parse(req.body);
 
 #### 3.7.2 Database Documentation
 
-Document schema in `docs/04_DATABASE.md`:
+**All database schemas MUST be documented in `docs/04_DATABASE.md`**
+
+Document each table with:
 
 ```markdown
 ## Table: user_projects
@@ -501,6 +503,79 @@ Document schema in `docs/04_DATABASE.md`:
 - `uq_user_projects__user_id_name` — Unique project name per user
 - `fk_user_projects__user_id` — Foreign key to users table
 ```
+
+---
+
+#### 3.7.3 ER Diagram (MANDATORY)
+
+**All database tables and relationships MUST be documented in a single ER diagram.**
+
+**Location**: `docs/diagrams/database-er-diagram.puml`
+
+**Requirements**:
+- **Single file** for entire database schema
+- **PlantUML format** only
+- **All tables** must be included
+- **All relationships** (foreign keys) must be shown
+- **Cardinality** must be specified (1:1, 1:N, N:M)
+- **Primary keys** must be marked
+- **Update whenever schema changes**
+
+**Example ER Diagram**:
+
+```plantuml
+@startuml database-er-diagram
+
+' Entity definitions
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR(255) <<unique>>
+  * password_hash : VARCHAR(255)
+  * name : VARCHAR(100)
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "user_projects" as projects {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * name : VARCHAR(100)
+  description : TEXT
+  * is_active : BOOLEAN
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "papers" as papers {
+  * id : UUID <<PK>>
+  --
+  * project_id : UUID <<FK>>
+  * title : VARCHAR(500)
+  * abstract : TEXT
+  * authors : TEXT
+  * year : INTEGER
+  * created_at : TIMESTAMP
+}
+
+' Relationships
+users ||--o{ projects : "owns"
+projects ||--o{ papers : "contains"
+
+@enduml
+```
+
+**When to Update**:
+- Adding new tables
+- Modifying table structure
+- Adding/removing foreign keys
+- Changing relationships
+
+**Verification**:
+- ER diagram must match actual database schema
+- All tables in schema must be in diagram
+- All foreign keys must be shown as relationships
 
 ---
 
@@ -1146,6 +1221,13 @@ This checklist is **MANDATORY** after:
   - Indexes on foreign keys
   - Unique constraints where applicable
   - NOT NULL by default
+
+- [ ] **ER Diagram updated** in `docs/diagrams/database-er-diagram.puml` (Section 3.7.3)
+  - [ ] All tables included
+  - [ ] All relationships shown
+  - [ ] Cardinality specified
+  - [ ] Primary keys marked
+  - [ ] Diagram matches actual schema
 
 ---
 
