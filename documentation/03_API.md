@@ -646,10 +646,14 @@ Content-Type: application/json
 
 #### Diagrams
 
-**Activity Diagram**: `docs/diagrams/intent-decomposition-activity.puml` (TODO)  
-**Sequence Diagram**: `docs/diagrams/intent-decomposition-sequence.puml` (TODO)
+**Activity Diagram**: `documentation/diagrams/intent-decomposition-activity.puml`  
+**Sequence Diagram**: `documentation/diagrams/intent-decomposition-sequence.puml`
 
-> Note: Diagrams should be created as this involves LLM processing
+These diagrams show:
+- Complete workflow from user input to structured output
+- OpenAI API integration
+- Error handling paths (validation, rate limiting, API errors)
+- Authentication flow
 
 ---
 

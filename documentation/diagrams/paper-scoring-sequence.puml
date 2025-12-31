@@ -1,0 +1,115 @@
+@startuml paper-scoring-sequence
+
+title Paper Scoring - Sequence Diagram
+
+actor User
+participant "Frontend" as FE
+participant "API Gateway" as API
+participant "Auth Middleware" as Auth
+participant "Score Controller" as Controller
+participant "Score Service" as Service
+participant "OpenAI API" as OpenAI
+
+User -> FE: Submit user abstract +\ncandidate paper abstract
+activate FE
+
+FE -> API: POST /v1/stages/score\n{userAbstract, candidateAbstract}
+activate API
+
+API -> Auth: Verify JWT token
+activate Auth
+Auth -> Auth: Extract user ID
+Auth --> API: User authenticated
+deactivate Auth
+
+API -> Controller: handlePaperScoring(req)
+activate Controller
+
+Controller -> Controller: Validate input
+note right
+  - Check both abstracts present
+  - Check length ≤ 5000 chars each
+end note
+
+alt Invalid input
+  Controller --> API: 400 Bad Request
+  API --> FE: Error response
+  FE --> User: Show validation error
+else Valid input
+  
+  Controller -> Service: scorePaper(userAbstract, candidateAbstract, userId)
+  activate Service
+  
+  Service -> Service: Prepare structured prompt
+  note right
+    Prompt engineering:
+    "Compare these two abstracts and provide:
+    1. Semantic similarity score (0-100)
+    2. Category (C1: competitor, C2: supporting)
+    3. Research gaps in candidate paper
+    4. Novelty of user's work
+    5. Recommendations"
+  end note
+  
+  Service -> OpenAI: POST /v1/chat/completions
+  activate OpenAI
+  
+  alt API Success
+    OpenAI --> Service: LLM response (JSON)
+    deactivate OpenAI
+    
+    Service -> Service: Parse response
+    Service -> Service: Calculate weighted score
+    note right
+      Final score calculation:
+      - Semantic similarity: 40%
+      - Category relevance: 30%
+      - Gap significance: 30%
+    end note
+    
+    Service -> Service: Structure output
+    note right
+      {
+        semanticScore: 85,
+        category: "C1",
+        finalScore: 78,
+        researchGaps: [...],
+        noveltyAnalysis: "...",
+        recommendations: "..."
+      }
+    end note
+    
+    Service --> Controller: Scoring analysis
+    deactivate Service
+    
+    Controller --> API: 200 OK + analysis
+    API --> FE: Success response
+    FE --> User: Display scoring results
+    
+  else Rate Limit Exceeded
+    OpenAI --> Service: 429 Rate Limit
+    deactivate OpenAI
+    Service --> Controller: Rate limit error
+    deactivate Service
+    Controller --> API: 429 Too Many Requests
+    API --> FE: Error response
+    FE --> User: "Too many requests, try again"
+    
+  else API Error
+    OpenAI --> Service: 500 Error
+    deactivate OpenAI
+    Service -> Service: Log error
+    Service --> Controller: API error
+    deactivate Service
+    Controller --> API: 500 Internal Server Error
+    API --> FE: Error response
+    FE --> User: "Service unavailable"
+  end
+  
+end
+
+deactivate Controller
+deactivate API
+deactivate FE
+
+@enduml

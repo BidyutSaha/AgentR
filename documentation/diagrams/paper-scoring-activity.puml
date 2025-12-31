@@ -1,0 +1,75 @@
+@startuml paper-scoring-activity
+
+title Paper Scoring - Activity Diagram
+
+start
+
+:User submits user abstract + candidate paper abstract;
+
+:Validate input;
+note right
+  - Check both abstracts not empty
+  - Check length ≤ 5000 characters each
+end note
+
+if (Valid?) then (yes)
+  :Extract user ID from JWT token;
+  
+  :Prepare OpenAI prompt;
+  note right
+    Structured prompt to analyze:
+    1. Semantic similarity
+    2. Category (C1: competitor, C2: supporting)
+    3. Research gaps
+    4. Novelty of user's work
+  end note
+  
+  :Call OpenAI API (GPT-4o-mini);
+  
+  if (API call successful?) then (yes)
+    :Parse LLM response;
+    
+    :Extract scoring components;
+    note right
+      - semanticScore: 0-100
+      - category: "C1" | "C2"
+      - researchGaps: string[]
+      - noveltyAnalysis: string
+    end note
+    
+    :Calculate final score;
+    note right
+      Weighted scoring:
+      - Semantic similarity: 40%
+      - Category relevance: 30%
+      - Gap significance: 30%
+    end note
+    
+    :Return scoring analysis;
+    
+    :Success response (200 OK);
+    
+  else (no)
+    if (Rate limit exceeded?) then (yes)
+      :Return 429 Too Many Requests;
+      stop
+    else (API error)
+      :Log error details;
+      :Return 500 Internal Server Error;
+      stop
+    endif
+  endif
+  
+else (no)
+  :Return 400 Bad Request;
+  note right
+    Error: Invalid input
+    - Abstract too long
+    - Abstract empty
+  end note
+  stop
+endif
+
+stop
+
+@enduml

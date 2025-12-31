@@ -1,0 +1,81 @@
+@startuml query-generation-activity
+
+title Stage 2: Query Generation - Activity Diagram
+
+start
+
+:User submits Stage 1 output;
+note right
+  Input contains:
+  - problemStatement
+  - proposedSolution
+  - methodology
+  - expectedContributions
+end note
+
+:Validate input;
+note right
+  - Check all required fields present
+  - Check fields not empty
+end note
+
+if (Valid?) then (yes)
+  :Extract user ID from JWT token;
+  
+  :Prepare OpenAI prompt;
+  note right
+    Structured prompt to generate:
+    - Multiple search query variations
+    - Keywords
+    - Boolean query strings
+    - Semantic search queries
+  end note
+  
+  :Call OpenAI API (GPT-4o-mini);
+  
+  if (API call successful?) then (yes)
+    :Parse LLM response;
+    
+    :Extract generated queries;
+    note right
+      Output structure:
+      - queries: string[]
+      - keywords: string[]
+      - booleanQueries: string[]
+    end note
+    
+    :Optimize queries;
+    note right
+      - Remove duplicates
+      - Rank by relevance
+      - Limit to top 10
+    end note
+    
+    :Return query list;
+    
+    :Success response (200 OK);
+    
+  else (no)
+    if (Rate limit exceeded?) then (yes)
+      :Return 429 Too Many Requests;
+      stop
+    else (API error)
+      :Log error details;
+      :Return 500 Internal Server Error;
+      stop
+    endif
+  endif
+  
+else (no)
+  :Return 400 Bad Request;
+  note right
+    Error: Invalid input
+    - Missing required fields
+    - Empty fields
+  end note
+  stop
+endif
+
+stop
+
+@enduml
