@@ -506,22 +506,60 @@ Document each table with:
 
 ---
 
-#### 3.7.3 ER Diagram (MANDATORY)
+#### 3.7.3 ER Diagram (MANDATORY - NO EXCEPTIONS)
+
+> **CRITICAL RULE**: The ER diagram is NOT optional. It MUST exist and MUST be updated with EVERY database change.  
+> **ANY database change without ER diagram update is INCOMPLETE and MUST be rejected.**
 
 **All database tables and relationships MUST be documented in a single ER diagram.**
 
 **Location**: `docs/diagrams/database-er-diagram.puml`
 
-**Requirements**:
-- **Single file** for entire database schema
-- **PlantUML format** only
-- **All tables** must be included
-- **All relationships** (foreign keys) must be shown
-- **Cardinality** must be specified (1:1, 1:N, N:M)
-- **Primary keys** must be marked
-- **Update whenever schema changes**
+---
 
-**Example ER Diagram**:
+### **Requirements (NON-NEGOTIABLE)**:
+
+- ✅ **Single file** for entire database schema
+- ✅ **PlantUML format** only (`.puml` extension)
+- ✅ **All tables** must be included (no exceptions)
+- ✅ **All relationships** (foreign keys) must be shown
+- ✅ **Cardinality** must be specified (1:1, 1:N, N:M)
+- ✅ **Primary keys** must be marked with `<<PK>>`
+- ✅ **Foreign keys** must be marked with `<<FK>>`
+- ✅ **Unique constraints** should be marked with `<<unique>>`
+- ✅ **Required fields** marked with `*` (asterisk)
+- ✅ **Optional fields** without asterisk
+
+---
+
+### **When ER Diagram MUST Be Created**:
+
+**IMMEDIATELY** when:
+- ✅ Creating the first database table
+- ✅ Starting a new project with a database
+- ✅ Migrating an existing project (see MIGRATION_GUIDE.md)
+
+**If your project has a database but NO ER diagram → Work is INCOMPLETE**
+
+---
+
+### **When ER Diagram MUST Be Updated**:
+
+**BEFORE marking work as complete** when:
+- ✅ Adding new tables
+- ✅ Removing tables
+- ✅ Modifying table structure (adding/removing columns)
+- ✅ Adding/removing foreign keys
+- ✅ Changing relationships
+- ✅ Adding/removing unique constraints
+- ✅ Changing primary keys
+- ✅ ANY schema change whatsoever
+
+**Rule**: Database change + No ER diagram update = **INCOMPLETE WORK**
+
+---
+
+### **Example ER Diagram**:
 
 ```plantuml
 @startuml database-er-diagram
@@ -566,16 +604,67 @@ projects ||--o{ papers : "contains"
 @enduml
 ```
 
-**When to Update**:
-- Adding new tables
-- Modifying table structure
-- Adding/removing foreign keys
-- Changing relationships
+---
 
-**Verification**:
-- ER diagram must match actual database schema
-- All tables in schema must be in diagram
-- All foreign keys must be shown as relationships
+### **Verification Checklist**:
+
+Before marking database work as complete, verify:
+
+- [ ] ER diagram file exists at `docs/diagrams/database-er-diagram.puml`
+- [ ] All tables in database schema are in the diagram
+- [ ] All foreign keys are shown as relationships
+- [ ] Cardinality is correct for all relationships
+- [ ] Primary keys are marked with `<<PK>>`
+- [ ] Foreign keys are marked with `<<FK>>`
+- [ ] Required fields marked with `*`
+- [ ] Diagram matches actual database schema (no drift)
+
+---
+
+### **Enforcement**:
+
+- ❌ **Antigravity MUST NOT approve** database changes without ER diagram update
+- ❌ **Pull requests MUST be rejected** if ER diagram is missing or outdated
+- ❌ **Work is NOT DONE** until ER diagram is updated
+- ✅ **Post-Implementation Checklist** includes ER diagram verification (Section 8.1)
+
+---
+
+### **Common Mistakes to Avoid**:
+
+❌ "I'll update the ER diagram later" → **NO. Update it NOW.**  
+❌ "It's just a small change" → **ALL changes require ER diagram update**  
+❌ "The diagram is in my head" → **NOT acceptable. Must be documented**  
+❌ "I don't know PlantUML" → **Learn it. It's simple. See example above**
+
+---
+
+### **Why This Rule Exists**:
+
+1. **Documentation drift** — Without ER diagram, documentation becomes outdated
+2. **Onboarding** — New developers need to understand database structure quickly
+3. **Design review** — ER diagram enables architectural review
+4. **Debugging** — Visual representation helps identify relationship issues
+5. **Compliance** — Many industries require database documentation
+
+---
+
+### **How to Update ER Diagram**:
+
+1. **Open** `docs/diagrams/database-er-diagram.puml`
+2. **Add/modify** the entity definition
+3. **Update** relationships if foreign keys changed
+4. **Verify** diagram matches schema (compare with Prisma schema, migrations, etc.)
+5. **Commit** with database changes in same commit
+
+**Example commit message**:
+```
+feat(database): add papers table
+
+- Added papers table to store research papers
+- Added foreign key to user_projects
+- Updated ER diagram with new table and relationship
+```
 
 ---
 
@@ -1057,10 +1146,15 @@ it('should work', () => { ... });
 1. ✅ Code update
 2. ✅ API doc update (if API changed)
 3. ✅ Database doc update (if schema changed)
-4. ✅ Diagram update (if workflow changed)
-5. ✅ Project status update (`00_PROJECT_STATUS.md`)
-6. ✅ Testing doc update (if behavior changed)
-7. ✅ Comment & code-doc update (if logic changed)
+4. ✅ **ER diagram update** (if schema changed) — **MANDATORY, NO EXCEPTIONS**
+5. ✅ Diagram update (if workflow changed)
+6. ✅ Project status update (`00_PROJECT_STATUS.md`)
+7. ✅ Testing doc update (if behavior changed)
+8. ✅ Comment & code-doc update (if logic changed)
+
+**Special Rule for Database Changes**:
+> **ANY database schema change (add/remove table, modify columns, change relationships) MUST include ER diagram update in the SAME commit.**  
+> Database change without ER diagram update = **INCOMPLETE and MUST be rejected**.
 
 ---
 
@@ -1404,6 +1498,12 @@ After completing work, Antigravity MUST report:
 - No undocumented APIs
 - No stale diagrams
 - No orphan docs
+- **No database changes without ER diagram update** (Section 3.7.3)
+
+❌ **Database**:
+- **No database without ER diagram** — If database exists, ER diagram MUST exist
+- **No schema changes without ER diagram update** — ANY change requires diagram update
+- No missing ER diagram verification in checklist
 
 ❌ **Code**:
 - No commented-out code (use version control)
