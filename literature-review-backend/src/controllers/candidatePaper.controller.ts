@@ -3,6 +3,7 @@ import {
     createCandidatePaper,
     getCandidatePapers,
     getCandidatePaperById,
+    getCandidatePaperByIdOnly,
     updateCandidatePaper,
     deleteCandidatePaper,
 } from '../services/candidatePaper/candidatePaper.service';
@@ -84,6 +85,35 @@ export async function handleGetCandidatePaperById(
         const userId = req.userId!; // From auth middleware
 
         const paper = await getCandidatePaperById(projectId, paperId, userId);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                paper,
+            },
+        });
+    } catch (error) {
+        logger.error('Error getting candidate paper:', error);
+        next(error);
+    }
+}
+
+/**
+ * Get a single candidate paper by ID (without project ID)
+ * 
+ * @route GET /v1/papers/:paperId
+ * @access Protected
+ */
+export async function handleGetCandidatePaperByIdOnly(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const { paperId } = req.params;
+        const userId = req.userId!; // From auth middleware
+
+        const paper = await getCandidatePaperByIdOnly(paperId, userId);
 
         res.status(200).json({
             success: true,

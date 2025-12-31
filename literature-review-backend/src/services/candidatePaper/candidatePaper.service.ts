@@ -159,6 +159,40 @@ export async function getCandidatePaperById(
 }
 
 /**
+ * Get a single candidate paper by ID (without project ID)
+ * 
+ * @param paperId - ID of the paper
+ * @param userId - ID of the user (for authorization check)
+ * @returns Candidate paper
+ * @throws {Error} If paper not found or user doesn't own project
+ */
+export async function getCandidatePaperByIdOnly(
+    paperId: string,
+    userId: string
+): Promise<SafeCandidatePaper> {
+    // Get paper with project info
+    const paper = await prisma.candidatePaper.findUnique({
+        where: { id: paperId },
+        include: {
+            project: true, // We need project to check ownership
+        },
+    });
+
+    if (!paper) {
+        throw new Error('Paper not found');
+    }
+
+    // Verify ownership
+    if (paper.project.userId !== userId) {
+        throw new Error('You do not have permission to view this paper');
+    }
+
+    // Remove project info before returning
+    const { project, ...paperData } = paper;
+    return toSafeCandidatePaper(paperData);
+}
+
+/**
  * Update a candidate paper
  * 
  * Allows updating basic paper information (title, abstract, link).
