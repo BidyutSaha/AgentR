@@ -561,6 +561,286 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+### GET /v1/user-projects/user/:userId
+
+**Description**: Get all projects belonging to a specific user.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must match userId)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:userId` (string, required) — User UUID
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    projects: Array<{
+      id: string;
+      userId: string;
+      projectName: string;
+      userIdea: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    count: number;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/user-projects/user/user_123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "projects": [
+      {
+        "id": "proj_550e8400-e29b-41d4-a716-446655440000",
+        "userId": "user_123e4567-e89b-12d3-a456-426614174000",
+        "projectName": "AI Research",
+        "userIdea": "Investigating AI agents...",
+        "createdAt": "2025-12-31T12:00:00.000Z",
+        "updatedAt": "2025-12-31T12:00:00.000Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Access denied | Accessing other user's projects |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Users can only list their own projects
+- Requesting another user's projects returns 403 Forbidden
+
+---
+
+### PATCH /v1/user-projects/:id
+
+**Description**: Update an existing project details.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:id` (string, required) — Project UUID
+
+**Request Body**:
+```typescript
+{
+  projectName?: string;  // Optional: max 100 chars
+  userIdea?: string;     // Optional: max text length
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    project: UserProject;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+PATCH /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "projectName": "Updated AI Research"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "userId": "user_123e4567-e89b-12d3-a456-426614174000",
+      "projectName": "Updated AI Research",
+      "userIdea": "Investigating AI agents...",
+      "createdAt": "2025-12-31T12:00:00.000Z",
+      "updatedAt": "2025-12-31T13:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Project name too long |
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Project not found | Invalid project ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Only provided fields are updated
+- `updatedAt` is automatically refreshed
+- User must own the project
+
+---
+
+### DELETE /v1/user-projects/:id
+
+**Description**: Delete a project and all associated papers.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:id` (string, required) — Project UUID
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+DELETE /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Project deleted successfully"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Project not found | Invalid project ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Permanently deletes valid project
+- **CASCADE DELETE**: All candidate papers associated with this project are also deleted
+- Cannot be undone
+
+---
+
 ## Candidate Papers Endpoints
 
 ### POST /v1/user-projects/:projectId/papers
