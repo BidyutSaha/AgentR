@@ -218,48 +218,289 @@ GET /v1/project/get/:id
 
 ## 3. API & Database Standards
 
-### 3.1 API Response Structure
+### 3.1 API Documentation Requirements (MANDATORY)
 
-All API responses must follow a consistent structure:
+Every API endpoint documented in `docs/03_API.md` MUST include:
+
+1. **API Path with Versioning** — Full path including version prefix
+2. **HTTP Method** — GET, POST, PATCH, DELETE, etc.
+3. **Description** — What the endpoint does and why it exists
+4. **Authentication** — Required auth level and permissions
+5. **Input Structure** — Request body/query params schema
+6. **Output Structure** — Response body schema
+7. **Sample Input** — Real example request
+8. **Sample Output** — Real example response
+9. **Error Cases** — Possible errors with status codes
+10. **Diagrams** — Activity & sequence diagrams for non-trivial flows
+
+---
+
+### 3.2 API Documentation Template
+
+Use this template for **EVERY** endpoint in `docs/03_API.md`:
+
+````markdown
+## [HTTP Method] [API Path]
+
+**Description**: [What this endpoint does and its purpose]
+
+**Authentication**: [Required | Optional | None]  
+**Roles**: [Admin | User | Public]
+
+---
+
+### Input Structure
+
+**Request Body** (for POST/PATCH):
+```typescript
+{
+  field1: string;        // Description of field1
+  field2: number;        // Description of field2
+  field3?: boolean;      // Optional: Description of field3
+}
+```
+
+**Query Parameters** (for GET):
+- `param1` (string, required) — Description
+- `param2` (number, optional) — Description
+
+**Path Parameters**:
+- `:id` (string, required) — Resource identifier
+
+---
+
+### Output Structure
+
+**Success Response** (200/201):
+```typescript
+{
+  success: true;
+  data: {
+    id: string;
+    field1: string;
+    field2: number;
+    createdAt: string;    // ISO 8601 timestamp
+  };
+  message?: string;
+}
+```
+
+---
+
+### Sample Request
+
+```bash
+POST /v1/user-projects
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "My Research Project",
+  "description": "Literature review on AI agents",
+  "isActive": true
+}
+```
+
+---
+
+### Sample Response
+
+**Success (201 Created)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "proj_abc123",
+    "userId": "user_xyz789",
+    "name": "My Research Project",
+    "description": "Literature review on AI agents",
+    "isActive": true,
+    "createdAt": "2025-12-31T08:30:00.000Z",
+    "updatedAt": "2025-12-31T08:30:00.000Z"
+  },
+  "message": "Project created successfully"
+}
+```
+
+---
+
+### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input data | Missing required field |
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Insufficient permissions | User not owner |
+| 404 | `NOT_FOUND` | Resource not found | Project doesn't exist |
+| 409 | `CONFLICT` | Resource conflict | Duplicate project name |
+| 500 | `INTERNAL_ERROR` | Server error | Database connection failed |
+
+**Sample Error Response**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Project name is required",
+    "details": {
+      "field": "name",
+      "constraint": "required"
+    }
+  }
+}
+```
+
+---
+
+### Diagrams (Required for Non-Trivial Endpoints)
+
+**Activity Diagram**: `docs/diagrams/create-project-activity.puml`  
+**Sequence Diagram**: `docs/diagrams/create-project-sequence.puml`
+
+> If endpoint is trivial (simple CRUD), state: "Diagrams: Not required (simple CRUD operation)"
+
+---
+
+### Business Logic Notes
+
+[Any non-obvious business rules, edge cases, or important implementation details]
+
+````
+
+---
+
+### 3.3 When Diagrams Are MANDATORY
+
+Diagrams (Activity + Sequence) are **REQUIRED** for endpoints that:
+
+1. **Involve multiple services** — Cross-service communication
+2. **Have complex workflows** — Multi-step processes
+3. **Include async operations** — Background jobs, webhooks
+4. **Perform external API calls** — Third-party integrations
+5. **Have non-trivial business logic** — Complex validation, calculations
+6. **Modify multiple resources** — Cascading updates, transactions
+
+**Simple CRUD operations** (basic create/read/update/delete) do NOT require diagrams.
+
+---
+
+### 3.4 API Response Structure (Standard)
+
+All API responses MUST follow this structure:
 
 ```typescript
 // Success response
 {
   "success": true,
   "data": { /* actual data */ },
-  "message": "Optional success message"
+  "message"?: string  // Optional success message
 }
 
 // Error response
 {
   "success": false,
   "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": { /* optional additional context */ }
+    "code": string,      // Machine-readable error code
+    "message": string,   // Human-readable error message
+    "details"?: object   // Optional additional context
   }
 }
 ```
 
-### 3.2 HTTP Status Codes
+---
+
+### 3.5 HTTP Status Codes (Standard)
 
 Use appropriate status codes:
-- `200` OK — Successful GET, PATCH, DELETE
-- `201` Created — Successful POST
-- `400` Bad Request — Validation error
-- `401` Unauthorized — Missing/invalid auth
-- `403` Forbidden — Insufficient permissions
-- `404` Not Found — Resource doesn't exist
-- `409` Conflict — Resource conflict (e.g., duplicate)
-- `500` Internal Server Error — Unexpected server error
 
-### 3.3 Database Constraints
+| Code | Meaning | When to Use |
+|------|---------|-------------|
+| `200` | OK | Successful GET, PATCH, DELETE |
+| `201` | Created | Successful POST (resource created) |
+| `204` | No Content | Successful DELETE (no response body) |
+| `400` | Bad Request | Validation error, malformed request |
+| `401` | Unauthorized | Missing or invalid authentication |
+| `403` | Forbidden | Authenticated but insufficient permissions |
+| `404` | Not Found | Resource doesn't exist |
+| `409` | Conflict | Resource conflict (duplicate, version mismatch) |
+| `422` | Unprocessable Entity | Valid syntax but semantic errors |
+| `429` | Too Many Requests | Rate limit exceeded |
+| `500` | Internal Server Error | Unexpected server error |
+| `503` | Service Unavailable | Temporary service outage |
+
+---
+
+### 3.6 Input Validation Standards
+
+**All inputs MUST be validated** at the controller level:
+
+```typescript
+// Use validation schemas (e.g., Zod, Joi, class-validator)
+import { z } from 'zod';
+
+const createProjectSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  isActive: z.boolean().default(true),
+});
+
+// Validate in controller
+const validatedData = createProjectSchema.parse(req.body);
+```
+
+**Document validation rules** in API docs:
+
+```markdown
+### Input Validation
+
+- `name`: Required, 1-100 characters
+- `description`: Optional, max 500 characters
+- `isActive`: Optional, boolean, defaults to true
+```
+
+---
+
+### 3.7 Database Standards
+
+#### 3.7.1 Database Constraints
 
 - **Always** use foreign key constraints
 - **Always** add indexes on foreign keys
 - **Always** add unique constraints where applicable
 - Use `NOT NULL` by default unless null is semantically meaningful
 - Use `DEFAULT` values where appropriate
+
+#### 3.7.2 Database Documentation
+
+Document schema in `docs/04_DATABASE.md`:
+
+```markdown
+## Table: user_projects
+
+**Description**: Stores user research projects
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique project identifier |
+| user_id | UUID | NOT NULL, FK → users(id) | Owner of the project |
+| name | VARCHAR(100) | NOT NULL | Project name |
+| description | TEXT | NULL | Project description |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | Active status |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update timestamp |
+
+### Indexes
+
+- `idx_user_projects__user_id` — Fast lookup by user
+- `idx_user_projects__created_at` — Sorting by creation date
+
+### Constraints
+
+- `uq_user_projects__user_id_name` — Unique project name per user
+- `fk_user_projects__user_id` — Foreign key to users table
+```
 
 ---
 
@@ -393,15 +634,36 @@ Any new doc MUST:
 
 - **Location**: `docs/diagrams/`
 - **Format**: PlantUML only (`.puml` files)
-- **Every major workflow** MUST have:
-  - Activity diagram (flow)
-  - Sequence diagram (interactions)
+- **Naming**: `{feature}-{type}.puml` (e.g., `create-project-activity.puml`, `auth-flow-sequence.puml`)
+
+#### When Diagrams Are REQUIRED
+
+**Every non-trivial workflow** MUST have:
+- **Activity diagram** (`.puml`) — Shows the flow and decision points
+- **Sequence diagram** (`.puml`) — Shows interactions between components
+
+**Non-trivial workflows** include (see Section 3.3 for full criteria):
+- Multi-service interactions
+- Complex business logic
+- Async operations (background jobs, webhooks)
+- External API integrations
+- Multi-resource modifications
+
+#### When Diagrams Are OPTIONAL
+
+**Simple CRUD operations** (basic create/read/update/delete with no complex logic) do NOT require diagrams.
+
+When skipping diagrams, document in API docs:
+> **Diagrams**: Not required (simple CRUD operation)
+
+#### Diagram Maintenance
 
 **When workflow changes**:
-1. Update diagrams
+1. Update affected diagrams
 2. Update `00_PROJECT_STATUS.md`
+3. Update API documentation
 
-If no diagram impact, state:
+**If no diagram impact**, state in your response:
 > Diagram impact: none (reason)
 
 ---
