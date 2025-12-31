@@ -7,6 +7,7 @@ import {
     updateCandidatePaper,
     updateCandidatePaperByIdOnly,
     deleteCandidatePaper,
+    deleteCandidatePaperByIdOnly,
 } from '../services/candidatePaper/candidatePaper.service';
 import logger from '../config/logger';
 
@@ -204,6 +205,33 @@ export async function handleDeleteCandidatePaper(
         const userId = req.userId!; // From auth middleware
 
         const result = await deleteCandidatePaper(projectId, paperId, userId);
+
+        res.status(200).json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        logger.error('Error deleting candidate paper:', error);
+        next(error);
+    }
+}
+
+/**
+ * Delete a single candidate paper by ID (without project ID)
+ * 
+ * @route DELETE /v1/papers/:paperId
+ * @access Protected
+ */
+export async function handleDeleteCandidatePaperByIdOnly(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const { paperId } = req.params;
+        const userId = req.userId!; // From auth middleware
+
+        const result = await deleteCandidatePaperByIdOnly(paperId, userId);
 
         res.status(200).json({
             success: true,

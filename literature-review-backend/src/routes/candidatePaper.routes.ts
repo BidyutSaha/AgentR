@@ -5,12 +5,9 @@ import {
     handleCreateCandidatePaper,
     handleGetCandidatePapers,
     handleGetCandidatePaperById,
-    handleUpdateCandidatePaper,
-    handleDeleteCandidatePaper,
 } from '../controllers/candidatePaper.controller';
 import {
     createCandidatePaperSchema,
-    updateCandidatePaperSchema,
 } from '../services/candidatePaper/candidatePaper.schema';
 
 const router = Router();
@@ -47,29 +44,6 @@ router.get(
     '/:projectId/papers/:paperId',
     authenticate,
     handleGetCandidatePaperById
-);
-
-/**
- * @route   PATCH /v1/user-projects/:projectId/papers/:paperId
- * @desc    Update a candidate paper
- * @access  Protected
- */
-router.patch(
-    '/:projectId/papers/:paperId',
-    authenticate,
-    validate(updateCandidatePaperSchema),
-    handleUpdateCandidatePaper
-);
-
-/**
- * @route   DELETE /v1/user-projects/:projectId/papers/:paperId
- * @desc    Delete a candidate paper
- * @access  Protected
- */
-router.delete(
-    '/:projectId/papers/:paperId',
-    authenticate,
-    handleDeleteCandidatePaper
 );
 
 export default router;

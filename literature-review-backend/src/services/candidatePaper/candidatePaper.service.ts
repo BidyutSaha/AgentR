@@ -440,3 +440,42 @@ export async function deleteCandidatePaper(
 
     return { message: 'Paper deleted successfully' };
 }
+
+/**
+ * Delete a candidate paper by ID (without project ID)
+ * 
+ * @param paperId - ID of the paper to delete
+ * @param userId - ID of the user (for authorization check)
+ * @returns Success message
+ * @throws {Error} If paper not found or user doesn't own project
+ */
+export async function deleteCandidatePaperByIdOnly(
+    paperId: string,
+    userId: string
+): Promise<{ message: string }> {
+    // Get paper with project info
+    const paper = await prisma.candidatePaper.findUnique({
+        where: { id: paperId },
+        include: {
+            project: true,
+        },
+    });
+
+    if (!paper) {
+        throw new Error('Paper not found');
+    }
+
+    // Verify ownership
+    if (paper.project.userId !== userId) {
+        throw new Error('You do not have permission to delete this paper');
+    }
+
+    // Delete the paper
+    await prisma.candidatePaper.delete({
+        where: { id: paperId },
+    });
+
+    logger.info(`Candidate paper deleted: ${paperId}`);
+
+    return { message: 'Paper deleted successfully' };
+}

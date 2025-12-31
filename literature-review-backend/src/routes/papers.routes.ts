@@ -3,7 +3,8 @@ import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
 import {
     handleGetCandidatePaperByIdOnly,
-    handleUpdateCandidatePaperByIdOnly
+    handleUpdateCandidatePaperByIdOnly,
+    handleDeleteCandidatePaperByIdOnly
 } from '../controllers/candidatePaper.controller';
 import { updateCandidatePaperSchema } from '../services/candidatePaper/candidatePaper.schema';
 
@@ -30,6 +31,17 @@ router.patch(
     authenticate,
     validate(updateCandidatePaperSchema),
     handleUpdateCandidatePaperByIdOnly
+);
+
+/**
+ * @route   DELETE /v1/papers/:paperId
+ * @desc    Delete a candidate paper by ID (without needing project ID)
+ * @access  Protected
+ */
+router.delete(
+    '/:paperId',
+    authenticate,
+    handleDeleteCandidatePaperByIdOnly
 );
 
 export default router;

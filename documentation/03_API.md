@@ -34,16 +34,15 @@ Complete API reference for the Literature Review System.
 16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
 17. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
 18. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
-19. [PATCH /v1/user-projects/:projectId/papers/:paperId](#patch-v1user-projectsprojectidpaperspaperid) - Update paper (legacy)
-20. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
+19. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
 
 ### LLM Pipeline (Protected)
-21. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-22. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-23. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+20. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### Health Check (Public)
-24. [GET /v1/health](#get-v1health) - Health check
+23. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
