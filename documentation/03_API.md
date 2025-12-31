@@ -33,15 +33,16 @@ Complete API reference for the Literature Review System.
 15. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
 16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
 17. [GET /v1/user-projects/:projectId/papers/:paperId](#get-v1user-projectsprojectidpaperspaperid) - Get single paper
-18. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
+18. [PATCH /v1/user-projects/:projectId/papers/:paperId](#patch-v1user-projectsprojectidpaperspaperid) - Update paper
+19. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
 
 ### LLM Pipeline (Protected)
-19. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-20. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-21. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+20. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### Health Check (Public)
-22. [GET /v1/health](#get-v1health) - Health check
+23. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
@@ -953,6 +954,153 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - Returns complete paper details including all LLM analysis fields
 - User must own the project to view the paper
 - Paper must belong to the specified project
+
+---
+
+### PATCH /v1/user-projects/:projectId/papers/:paperId
+
+**Description**: Update basic information for a candidate paper (title, abstract, download link).
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own the project)
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project UUID
+- `:paperId` (string, required) — Paper UUID
+
+**Request Body** (all fields optional):
+```typescript
+{
+  paperTitle?: string;          // Updated paper title (1-500 characters)
+  paperAbstract?: string;       // Updated paper abstract (1-10000 characters)
+  paperDownloadLink?: string;   // Updated download link (URL or empty string to remove)
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    paper: CandidatePaper;  // Updated paper object with all fields
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+PATCH /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers/paper_123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "paperTitle": "Attention Is All You Need (Updated)",
+  "paperAbstract": "Updated abstract with more details about the Transformer architecture...",
+  "paperDownloadLink": "https://arxiv.org/pdf/1706.03762v7"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "paper": {
+      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
+      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "paperTitle": "Attention Is All You Need (Updated)",
+      "paperAbstract": "Updated abstract with more details about the Transformer architecture...",
+      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762v7",
+      "isProcessedByLlm": false,
+      "semanticSimilarity": null,
+      "similarityModelName": null,
+      "problemOverlap": null,
+      "domainOverlap": null,
+      "constraintOverlap": null,
+      "c1Score": null,
+      "c1Justification": null,
+      "c1Strengths": null,
+      "c1Weaknesses": null,
+      "c2Score": null,
+      "c2Justification": null,
+      "c2ContributionType": null,
+      "c2RelevanceAreas": null,
+      "researchGaps": null,
+      "userNovelty": null,
+      "modelUsed": null,
+      "inputTokensUsed": null,
+      "outputTokensUsed": null,
+      "processedAt": null,
+      "createdAt": "2025-12-31T15:00:00.000Z",
+      "updatedAt": "2025-12-31T16:30:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input data | Title too long |
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
+| 404 | `NOT_FOUND` | Paper or project not found | Invalid paper ID |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+**Sample Error Response**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Paper title must be between 1 and 500 characters",
+    "details": {
+      "field": "paperTitle",
+      "constraint": "maxLength",
+      "value": 500
+    }
+  }
+}
+```
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple CRUD operation)
+
+---
+
+#### Business Logic Notes
+
+- Only basic paper information can be updated (title, abstract, link)
+- **LLM analysis fields CANNOT be updated manually** - they are set via `/process` endpoint
+- All fields in request body are optional - only provided fields are updated
+- To remove download link, send empty string: `"paperDownloadLink": ""`
+- User must own the project to update papers
+- Paper must belong to the specified project
+- `updatedAt` timestamp is automatically updated
 
 ---
 
