@@ -1058,8 +1058,257 @@ A task is **DONE** only if:
 - ✅ **Testing doc** updated (if behavior changed)
 - ✅ **Project status** updated (`00_PROJECT_STATUS.md`)
 - ✅ **No violations** of hard "DO NOT" rules
+- ✅ **Post-Implementation Checklist** completed (Section 8.1)
 
 ---
+
+## 8.1 Post-Implementation Checklist (MANDATORY)
+
+> **This checklist MUST be completed after EVERY feature addition or update.**  
+> **Antigravity MUST verify and report completion of ALL items.**
+
+### **When This Fires**
+
+This checklist is **MANDATORY** after:
+- ✅ Adding a new feature
+- ✅ Updating existing functionality
+- ✅ Modifying API endpoints
+- ✅ Changing database schema
+- ✅ Refactoring business logic
+- ✅ Fixing bugs that change behavior
+
+---
+
+### **Checklist Items**
+
+#### **1. Code Quality**
+
+- [ ] **Naming conventions** followed (Section 2)
+  - Variables are nouns
+  - Functions are verb+noun
+  - Booleans start with is/has/can/should
+  - No vague names (data, info, temp, etc.)
+  
+- [ ] **Code structure** follows layered architecture (Section 5.1)
+  - Controllers: orchestration only
+  - Services: business logic only
+  - Repositories: database access only
+  
+- [ ] **Comments** explain WHY, not WHAT (Section 5.4)
+  - No restating code
+  - No commented-out code
+  - TODOs have context and timeline
+  
+- [ ] **Error handling** uses custom error classes (Section 5.3)
+  - No swallowed errors
+  - Proper error propagation
+  - Meaningful error messages
+
+---
+
+#### **2. API Documentation** (If API Changed)
+
+- [ ] **Endpoint documented** in `docs/03_API.md` using template (Section 3.2)
+  - [ ] API path with versioning (e.g., `POST /v1/user-projects`)
+  - [ ] HTTP method
+  - [ ] Description (what it does and why)
+  - [ ] Authentication & roles
+  - [ ] **Input structure** (TypeScript schema)
+  - [ ] **Output structure** (TypeScript schema)
+  - [ ] **Sample request** (with real data)
+  - [ ] **Sample response** (with real data)
+  - [ ] **Error cases table** (all possible errors)
+  - [ ] **Diagrams** (if non-trivial) or justification for skipping
+
+- [ ] **Input validation** implemented and documented (Section 3.6)
+  - Schema-based validation (Zod/Joi/class-validator)
+  - Validation rules documented in API docs
+  
+- [ ] **HTTP status codes** used correctly (Section 3.5)
+  - 200/201 for success
+  - 400/422 for validation errors
+  - 401/403 for auth errors
+  - 404 for not found
+  - 500 for server errors
+
+---
+
+#### **3. Database Documentation** (If Schema Changed)
+
+- [ ] **Schema documented** in `docs/04_DATABASE.md` (Section 3.7.2)
+  - [ ] Table description
+  - [ ] Column specifications (type, constraints, description)
+  - [ ] Indexes listed
+  - [ ] Constraints listed (unique, foreign key, check)
+  
+- [ ] **Database constraints** implemented
+  - Foreign key constraints
+  - Indexes on foreign keys
+  - Unique constraints where applicable
+  - NOT NULL by default
+
+---
+
+#### **4. Diagrams** (If Non-Trivial Workflow)
+
+- [ ] **Determine if diagrams required** (Section 3.3)
+  - Multi-service interactions? → Diagrams required
+  - Complex business logic? → Diagrams required
+  - Async operations? → Diagrams required
+  - External API calls? → Diagrams required
+  - Simple CRUD? → Diagrams optional
+  
+- [ ] **If required, create diagrams** in `docs/diagrams/`
+  - [ ] Activity diagram (`{feature}-activity.puml`)
+  - [ ] Sequence diagram (`{feature}-sequence.puml`)
+  
+- [ ] **If not required, document why**
+  - State in API docs: "Diagrams: Not required (simple CRUD operation)"
+
+---
+
+#### **5. Testing**
+
+- [ ] **Tests written** for new/changed functionality
+  - [ ] Unit tests for services
+  - [ ] Integration tests for repositories
+  - [ ] E2E tests for API endpoints
+  
+- [ ] **Tests pass** locally
+  - [ ] All existing tests still pass
+  - [ ] New tests pass
+  - [ ] No flaky tests
+  
+- [ ] **Testing doc updated** in `docs/08_TESTING.md`
+  - [ ] New test scenarios documented
+  - [ ] Test coverage updated
+  - [ ] Known gaps documented (if any)
+
+---
+
+#### **6. Project Status Update**
+
+- [ ] **`docs/00_PROJECT_STATUS.md` updated** with:
+  - [ ] Current goal (if changed)
+  - [ ] What works now (new functionality added)
+  - [ ] In progress (if still ongoing)
+  - [ ] Recent changes (dated entry)
+  - [ ] Known issues (if any introduced)
+
+---
+
+#### **7. Code Documentation**
+
+- [ ] **JSDoc/TSDoc** added for:
+  - [ ] Public functions
+  - [ ] API handlers
+  - [ ] Shared utilities
+  - [ ] Non-trivial business logic
+  
+- [ ] **Documentation includes**:
+  - Purpose (WHY it exists)
+  - Contract (inputs/outputs)
+  - Side effects
+  - Failure modes
+  - Edge cases
+
+---
+
+#### **8. Quality Checks**
+
+- [ ] **No linting errors**
+  - Run linter and fix all issues
+  
+- [ ] **No console.logs** in production code
+  - Use proper logging (logger.info, logger.error)
+  
+- [ ] **No commented-out code**
+  - Remove or uncomment
+  
+- [ ] **No hard "DO NOT" violations** (Section 9)
+  - No vague names
+  - No undocumented APIs
+  - No stale diagrams
+  - No behavior change without test update
+
+---
+
+#### **9. Verification**
+
+- [ ] **Code works** as expected
+  - Manually tested locally
+  - All acceptance criteria met
+  
+- [ ] **No regressions**
+  - Existing functionality still works
+  - No breaking changes (or documented if intentional)
+
+---
+
+### **Antigravity Reporting Format**
+
+After completing work, Antigravity MUST report:
+
+```markdown
+## Post-Implementation Checklist Status
+
+### ✅ Code Quality
+- [x] Naming conventions followed
+- [x] Code structure follows layered architecture
+- [x] Comments explain WHY
+- [x] Error handling uses custom error classes
+
+### ✅ API Documentation (if applicable)
+- [x] Endpoint documented in docs/03_API.md
+  - [x] API path: POST /v1/user-projects
+  - [x] Input/output structures defined
+  - [x] Sample request/response provided
+  - [x] Error cases documented
+  - [x] Diagrams: Not required (simple CRUD operation)
+- [x] Input validation implemented
+- [x] HTTP status codes correct
+
+### ✅ Database Documentation (if applicable)
+- [x] Schema documented in docs/04_DATABASE.md
+- [x] Constraints implemented
+
+### ✅ Diagrams (if applicable)
+- [N/A] Not required for this change (simple CRUD operation)
+
+### ✅ Testing
+- [x] Unit tests written and passing
+- [x] Integration tests written and passing
+- [x] docs/08_TESTING.md updated
+
+### ✅ Project Status
+- [x] docs/00_PROJECT_STATUS.md updated
+
+### ✅ Code Documentation
+- [x] JSDoc added for public functions
+- [x] Documentation includes purpose, contract, side effects
+
+### ✅ Quality Checks
+- [x] No linting errors
+- [x] No console.logs
+- [x] No commented-out code
+- [x] No hard "DO NOT" violations
+
+### ✅ Verification
+- [x] Code works as expected
+- [x] No regressions
+
+**All checklist items completed. Work is DONE.**
+```
+
+---
+
+### **Enforcement**
+
+- **Antigravity MUST NOT mark work as complete** until this checklist is verified
+- **Any incomplete items MUST be flagged** and completed before proceeding
+- **User MUST be notified** if any items are skipped with justification
+
+
 
 ## 9. Hard "DO NOT" Rules
 
@@ -1091,36 +1340,53 @@ A task is **DONE** only if:
 
 Every Antigravity response **MUST** include:
 
-### Summary
+### 1. Post-Implementation Checklist Status (MANDATORY)
+
+**Report completion status** using the format from Section 8.1:
+- Code Quality ✅/❌
+- API Documentation ✅/❌/N/A
+- Database Documentation ✅/❌/N/A
+- Diagrams ✅/❌/N/A
+- Testing ✅/❌
+- Project Status ✅/❌
+- Code Documentation ✅/❌
+- Quality Checks ✅/❌
+- Verification ✅/❌
+
+**State clearly**: "All checklist items completed. Work is DONE." or list incomplete items.
+
+---
+
+### 2. Summary
 - Brief description of what was done
 
-### Files Changed
+### 3. Files Changed
 - List of modified/created files with reasons
 
-### Documentation Updates
+### 4. Documentation Updates
 - Which docs were updated
 - What sections were modified
 
-### Diagram Impact
+### 5. Diagram Impact
 - Diagrams updated (or "no impact" with reason)
 
-### Testing Impact
+### 6. Testing Impact
 - Tests affected/added
 - Testing doc updates
 
-### Code Documentation
+### 7. Code Documentation
 - Comment/docstring changes
 - Why they were needed
 
-### Design Decisions
+### 8. Design Decisions
 - Key choices made
 - Rationale
 
-### Verification Steps
+### 9. Verification Steps
 - How to run/verify the changes
 - Expected outcomes
 
-### Status Confirmation
+### 10. Status Confirmation
 - Confirmation that `00_PROJECT_STATUS.md` was updated
 - Confirmation that `08_TESTING.md` was updated (if applicable)
 
