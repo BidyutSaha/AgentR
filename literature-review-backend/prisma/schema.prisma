@@ -31,6 +31,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   refreshTokens           RefreshToken[]
   projects                UserProject[]
+  llmUsageLogs            LlmUsageLog[]
 
   @@map("users")
 }
@@ -93,6 +94,7 @@ model UserProject {
   // Relations
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   candidatePapers CandidatePaper[]
+  llmUsageLogs    LlmUsageLog[]
 
   @@map("user_projects")
 }
@@ -150,6 +152,7 @@ model CandidatePaper {
   
   // Relations
   project             UserProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  llmUsageLogs        LlmUsageLog[]
   
   @@map("candidate_papers")
   @@index([projectId])
@@ -182,3 +185,56 @@ model CandidatePaper {
 //
 //   @@map("saved_papers")
 // }
+
+// ============================================================================
+// LLM USAGE LOGS TABLE (for billing and tracking)
+// ============================================================================
+
+model LlmUsageLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  projectId String?  @map("project_id") // Optional: some calls may not be project-specific
+  paperId   String?  @map("paper_id") // Optional: if call is related to a specific paper
+  
+  // LLM Call Details
+  stage           String   // 'intent', 'queries', 'score', etc.
+  modelName       String   @map("model_name") // e.g., 'gpt-4o-mini', 'gpt-4'
+  provider        String   @default("openai") // 'openai', 'anthropic', etc.
+  
+  // Token Usage
+  inputTokens     Int      @map("input_tokens")
+  outputTokens    Int      @map("output_tokens")
+  totalTokens     Int      @map("total_tokens")
+  
+  // Cost Tracking (in USD, stored as cents to avoid floating point issues)
+  inputCostCents  Int?     @map("input_cost_cents") // Cost in cents (e.g., 150 = $1.50)
+  outputCostCents Int?     @map("output_cost_cents")
+  totalCostCents  Int?     @map("total_cost_cents")
+  
+  // Performance Metrics
+  durationMs      Int?     @map("duration_ms") // Time taken for API call in milliseconds
+  
+  // Request/Response Metadata
+  requestId       String?  @map("request_id") // OpenAI request ID or similar
+  status          String   @default("success") // 'success', 'error', 'timeout'
+  errorMessage    String?  @map("error_message") @db.Text
+  
+  // Additional Context
+  metadata        String?  @db.Text // JSON string for any additional data
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project UserProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  paper   CandidatePaper? @relation(fields: [paperId], references: [id], onDelete: SetNull)
+  
+  // Indexes for efficient querying
+  @@index([userId, createdAt]) // Query user's usage over time
+  @@index([projectId, createdAt]) // Query project's usage
+  @@index([stage, createdAt]) // Query by stage
+  @@index([createdAt]) // Time-based queries for billing periods
+  
+  @@map("llm_usage_logs")
+}
+
