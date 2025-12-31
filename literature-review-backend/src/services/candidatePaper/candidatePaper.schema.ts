@@ -36,6 +36,32 @@ export const updateCandidatePaperSchema = z.object({
         .url('Paper download link must be a valid URL')
         .optional()
         .or(z.literal('')),
+
+    // LLM Fields
+    isProcessedByLlm: z.boolean().optional(),
+    semanticSimilarity: z.number().optional(),
+    similarityModelName: z.string().optional(),
+
+    problemOverlap: z.string().optional(),
+    domainOverlap: z.string().optional(),
+    constraintOverlap: z.string().optional(),
+
+    c1Score: z.number().optional(),
+    c1Justification: z.string().optional(),
+    c1Strengths: z.union([z.string(), z.array(z.string())]).optional(),
+    c1Weaknesses: z.union([z.string(), z.array(z.string())]).optional(),
+
+    c2Score: z.number().optional(),
+    c2Justification: z.string().optional(),
+    c2ContributionType: z.string().optional(),
+    c2RelevanceAreas: z.union([z.string(), z.array(z.string())]).optional(),
+
+    researchGaps: z.union([z.string(), z.array(z.string())]).optional(),
+    userNovelty: z.string().optional(),
+
+    modelUsed: z.string().optional(),
+    inputTokensUsed: z.number().int().optional(),
+    outputTokensUsed: z.number().int().optional(),
 });
 
 /**

@@ -1,6 +1,9 @@
 import prisma from '../../config/database';
 import logger from '../../config/logger';
-import { CreateCandidatePaperInput } from './candidatePaper.schema';
+import {
+    CreateCandidatePaperInput,
+    UpdateCandidatePaperInput
+} from './candidatePaper.schema';
 import { SafeCandidatePaper } from '../../types/candidatePaper';
 
 /**
@@ -26,7 +29,7 @@ function toSafeCandidatePaper(paper: any): SafeCandidatePaper {
  * LLM processing fields are initially null and will be populated
  * when the paper is processed via the /process endpoint.
  * 
- * @param projectId - ID of the project to add the paper to
+ * @param projectId - ID of the project
  * @param userId - ID of the user (for authorization check)
  * @param data - Paper data (title, abstract, optional download link)
  * @returns Created candidate paper
@@ -185,7 +188,7 @@ export async function updateCandidatePaper(
     projectId: string,
     paperId: string,
     userId: string,
-    data: Partial<CreateCandidatePaperInput>
+    data: UpdateCandidatePaperInput
 ): Promise<SafeCandidatePaper> {
     // Verify project exists and user owns it
     const project = await prisma.userProject.findUnique({
@@ -212,14 +215,53 @@ export async function updateCandidatePaper(
         throw new Error('Paper not found');
     }
 
-    // Update the paper (only basic fields can be updated)
+    // Helper to process array or string fields
+    const processArrayField = (field: string | string[] | undefined): string | undefined => {
+        if (Array.isArray(field)) {
+            return JSON.stringify(field);
+        }
+        return field;
+    };
+
+    // Update the paper
     const updatedPaper = await prisma.candidatePaper.update({
         where: { id: paperId },
         data: {
+            // Basic Info
             ...(data.paperTitle && { paperTitle: data.paperTitle }),
             ...(data.paperAbstract && { paperAbstract: data.paperAbstract }),
             ...(data.paperDownloadLink !== undefined && {
                 paperDownloadLink: data.paperDownloadLink || null
+            }),
+
+            // LLM Fields
+            ...(data.isProcessedByLlm !== undefined && { isProcessedByLlm: data.isProcessedByLlm }),
+            ...(data.semanticSimilarity !== undefined && { semanticSimilarity: data.semanticSimilarity }),
+            ...(data.similarityModelName && { similarityModelName: data.similarityModelName }),
+
+            ...(data.problemOverlap && { problemOverlap: data.problemOverlap }),
+            ...(data.domainOverlap && { domainOverlap: data.domainOverlap }),
+            ...(data.constraintOverlap && { constraintOverlap: data.constraintOverlap }),
+
+            ...(data.c1Score !== undefined && { c1Score: data.c1Score }),
+            ...(data.c1Justification && { c1Justification: data.c1Justification }),
+            ...(data.c1Strengths !== undefined && { c1Strengths: processArrayField(data.c1Strengths) }),
+            ...(data.c1Weaknesses !== undefined && { c1Weaknesses: processArrayField(data.c1Weaknesses) }),
+
+            ...(data.c2Score !== undefined && { c2Score: data.c2Score }),
+            ...(data.c2Justification && { c2Justification: data.c2Justification }),
+            ...(data.c2ContributionType && { c2ContributionType: data.c2ContributionType }),
+            ...(data.c2RelevanceAreas !== undefined && { c2RelevanceAreas: processArrayField(data.c2RelevanceAreas) }),
+
+            ...(data.researchGaps !== undefined && { researchGaps: processArrayField(data.researchGaps) }),
+            ...(data.userNovelty && { userNovelty: data.userNovelty }),
+
+            ...(data.modelUsed && { modelUsed: data.modelUsed }),
+            ...(data.inputTokensUsed !== undefined && { inputTokensUsed: data.inputTokensUsed }),
+            ...(data.outputTokensUsed !== undefined && { outputTokensUsed: data.outputTokensUsed }),
+
+            ...(data.isProcessedByLlm !== undefined && {
+                processedAt: data.isProcessedByLlm ? new Date() : null
             }),
         },
     });
