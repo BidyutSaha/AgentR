@@ -3,6 +3,7 @@ import healthRoutes from './health.routes';
 import stagesRoutes from './stages.routes';
 import authRoutes from './auth.routes';
 import userProjectRoutes from './userProject.routes';
+import candidatePaperRoutes from './candidatePaper.routes';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 router.use('/v1', healthRoutes);
 router.use('/v1/auth', authRoutes);
 router.use('/v1/user-projects', userProjectRoutes);
+router.use('/v1/user-projects', candidatePaperRoutes); // Nested routes for papers
 router.use('/v1/stages', stagesRoutes);
 
 export default router;

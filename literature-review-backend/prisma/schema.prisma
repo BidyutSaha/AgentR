@@ -91,9 +91,70 @@ model UserProject {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidatePapers CandidatePaper[]
 
   @@map("user_projects")
+}
+
+// ============================================================================
+// CANDIDATE PAPERS TABLE
+// ============================================================================
+
+model CandidatePaper {
+  id                  String    @id @default(uuid())
+  projectId           String    @map("project_id")
+  
+  // Basic Paper Info (Created immediately)
+  paperTitle          String    @map("paper_title")
+  paperAbstract       String    @map("paper_abstract") @db.Text
+  paperDownloadLink   String?   @map("paper_download_link")
+  
+  // LLM Processing Status
+  isProcessedByLlm    Boolean   @default(false) @map("is_processed_by_llm")
+  
+  // Semantic Similarity (Populated after processing)
+  semanticSimilarity  Decimal?  @map("semantic_similarity") @db.Decimal(5, 4)
+  similarityModelName String?   @map("similarity_model_name")
+  
+  // Overlap Analysis
+  problemOverlap      String?   @map("problem_overlap") // 'high' | 'medium' | 'low'
+  domainOverlap       String?   @map("domain_overlap")  // 'high' | 'medium' | 'low'
+  constraintOverlap   String?   @map("constraint_overlap") // 'high' | 'medium' | 'low'
+  
+  // C1 Scoring (Competitor Analysis)
+  c1Score             Decimal?  @map("c1_score") @db.Decimal(5, 2)
+  c1Justification     String?   @map("c1_justification") @db.Text
+  c1Strengths         String?   @map("c1_strengths") @db.Text
+  c1Weaknesses        String?   @map("c1_weaknesses") @db.Text
+  
+  // C2 Scoring (Supporting Work Analysis)
+  c2Score             Decimal?  @map("c2_score") @db.Decimal(5, 2)
+  c2Justification     String?   @map("c2_justification") @db.Text
+  c2ContributionType  String?   @map("c2_contribution_type") @db.Text
+  c2RelevanceAreas    String?   @map("c2_relevance_areas") @db.Text
+  
+  // Gap Analysis
+  researchGaps        String?   @map("research_gaps") @db.Text
+  userNovelty         String?   @map("user_novelty") @db.Text
+  
+  // LLM Metadata
+  modelUsed           String?   @map("model_used")
+  inputTokensUsed     Int?      @map("input_tokens_used")
+  outputTokensUsed    Int?      @map("output_tokens_used")
+  processedAt         DateTime? @map("processed_at")
+  
+  // Timestamps
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project             UserProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("candidate_papers")
+  @@index([projectId])
+  @@index([isProcessedByLlm])
+  @@index([createdAt])
 }
 
 // ============================================================================
