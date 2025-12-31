@@ -15,6 +15,10 @@ export interface ApiErrorResponse {
         code: string;
         message: string;
         details?: any;
+        cause?: {
+            message: string;
+            stack?: string;
+        };
     };
     meta: {
         requestId: string;

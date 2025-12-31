@@ -23,10 +23,13 @@ export function errorHandler(
     res: Response,
     _next: NextFunction
 ): void {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
     logger.error({
         requestId: req.requestId,
         error: err.message,
         stack: err.stack,
+        cause: err.cause,
     });
 
     // Handle Zod validation errors
@@ -36,6 +39,10 @@ export function errorHandler(
                 code: ErrorCode.VALIDATION_ERROR,
                 message: 'Invalid request body',
                 details: err.errors,
+                cause: {
+                    message: err.message,
+                    ...(isDevelopment && { stack: err.stack }),
+                },
             },
             meta: {
                 requestId: req.requestId,
@@ -53,6 +60,10 @@ export function errorHandler(
                 code: err.code,
                 message: err.message,
                 details: err.details,
+                cause: {
+                    message: err.message,
+                    ...(isDevelopment && { stack: err.stack }),
+                },
             },
             meta: {
                 requestId: req.requestId,
@@ -68,6 +79,10 @@ export function errorHandler(
         error: {
             code: ErrorCode.INTERNAL_ERROR,
             message: 'An unexpected error occurred',
+            cause: {
+                message: err.message || 'Unknown error',
+                ...(isDevelopment && { stack: err.stack }),
+            },
         },
         meta: {
             requestId: req.requestId,
