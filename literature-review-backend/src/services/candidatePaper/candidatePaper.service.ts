@@ -156,6 +156,80 @@ export async function getCandidatePaperById(
 }
 
 /**
+ * Update a candidate paper
+ * 
+ * Allows updating basic paper information (title, abstract, link).
+ * LLM analysis fields cannot be updated manually - they are set via /process endpoint.
+ * 
+ * @param projectId - ID of the project
+ * @param paperId - ID of the paper to update
+ * @param userId - ID of the user (for authorization check)
+ * @param data - Updated paper data
+ * @returns Updated candidate paper
+ * @throws {Error} If paper not found or user doesn't own project
+ * 
+ * @example
+ * ```typescript
+ * const updated = await updateCandidatePaper(
+ *     'project-123',
+ *     'paper-456',
+ *     'user-789',
+ *     {
+ *         paperTitle: 'Updated Title',
+ *         paperAbstract: 'Updated abstract...'
+ *     }
+ * );
+ * ```
+ */
+export async function updateCandidatePaper(
+    projectId: string,
+    paperId: string,
+    userId: string,
+    data: Partial<CreateCandidatePaperInput>
+): Promise<SafeCandidatePaper> {
+    // Verify project exists and user owns it
+    const project = await prisma.userProject.findUnique({
+        where: { id: projectId },
+    });
+
+    if (!project) {
+        throw new Error('Project not found');
+    }
+
+    if (project.userId !== userId) {
+        throw new Error('You do not have permission to update papers in this project');
+    }
+
+    // Verify paper exists and belongs to this project
+    const existingPaper = await prisma.candidatePaper.findFirst({
+        where: {
+            id: paperId,
+            projectId,
+        },
+    });
+
+    if (!existingPaper) {
+        throw new Error('Paper not found');
+    }
+
+    // Update the paper (only basic fields can be updated)
+    const updatedPaper = await prisma.candidatePaper.update({
+        where: { id: paperId },
+        data: {
+            ...(data.paperTitle && { paperTitle: data.paperTitle }),
+            ...(data.paperAbstract && { paperAbstract: data.paperAbstract }),
+            ...(data.paperDownloadLink !== undefined && {
+                paperDownloadLink: data.paperDownloadLink || null
+            }),
+        },
+    });
+
+    logger.info(`Candidate paper updated: ${paperId} in project: ${projectId}`);
+
+    return toSafeCandidatePaper(updatedPaper);
+}
+
+/**
  * Delete a candidate paper
  * 
  * @param projectId - ID of the project

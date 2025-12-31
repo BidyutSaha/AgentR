@@ -3,6 +3,7 @@ import {
     createCandidatePaper,
     getCandidatePapers,
     getCandidatePaperById,
+    updateCandidatePaper,
     deleteCandidatePaper,
 } from '../services/candidatePaper/candidatePaper.service';
 import logger from '../config/logger';
@@ -92,6 +93,36 @@ export async function handleGetCandidatePaperById(
         });
     } catch (error) {
         logger.error('Error getting candidate paper:', error);
+        next(error);
+    }
+}
+
+/**
+ * Update a candidate paper
+ * 
+ * @route PATCH /v1/user-projects/:projectId/papers/:paperId
+ * @access Protected
+ */
+export async function handleUpdateCandidatePaper(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const { projectId, paperId } = req.params;
+        const userId = req.userId!; // From auth middleware
+        const updateData = req.body;
+
+        const paper = await updateCandidatePaper(projectId, paperId, userId, updateData);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                paper,
+            },
+        });
+    } catch (error) {
+        logger.error('Error updating candidate paper:', error);
         next(error);
     }
 }

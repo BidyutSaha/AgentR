@@ -16,8 +16,8 @@ import {
     SafeUser,
     AuthResponse,
     RegisterRequest,
+    RegisterResponse,
     LoginRequest,
-    TokenPair,
 } from '../../types/auth';
 import { config } from '../../config/env';
 import logger from '../../config/logger';
@@ -39,9 +39,9 @@ function toSafeUser(user: any): SafeUser {
  * Register a new user
  * 
  * @param data - Registration data
- * @returns User and tokens
+ * @returns User and message
  */
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
     const { email, password, firstName, lastName } = data;
 
     // Validate password strength
@@ -89,19 +89,11 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
         verificationToken
     );
 
-    // Generate tokens
-    const tokens = await generateTokenPair(user.id, user.email);
-
     logger.info(`User registered: ${user.email}`);
 
     return {
         user: toSafeUser(user),
-        tokens: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-            accessTokenExpiresIn: config.jwt.accessExpiration,
-            refreshTokenExpiresIn: config.jwt.refreshExpiration,
-        },
+        message: 'Registration successful. Please check your email to verify your account.',
     };
 }
 

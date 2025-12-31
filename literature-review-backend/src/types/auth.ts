@@ -71,6 +71,11 @@ export interface AuthResponse {
     };
 }
 
+export interface RegisterResponse {
+    user: SafeUser;
+    message: string;
+}
+
 export interface MessageResponse {
     message: string;
 }
