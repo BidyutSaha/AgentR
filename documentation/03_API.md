@@ -32,18 +32,17 @@ Complete API reference for the Literature Review System.
 ### Candidate Papers (Protected)
 15. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
 16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
-17. [GET /v1/user-projects/:projectId/papers/:paperId](#get-v1user-projectsprojectidpaperspaperid) - Get single paper
+17. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
 18. [PATCH /v1/user-projects/:projectId/papers/:paperId](#patch-v1user-projectsprojectidpaperspaperid) - Update paper
 19. [DELETE /v1/user-projects/:projectId/papers/:paperId](#delete-v1user-projectsprojectidpaperspaperid) - Delete paper
-20. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper (Direct)
 
 ### LLM Pipeline (Protected)
-21. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-22. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-23. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+20. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### Health Check (Public)
-24. [GET /v1/health](#get-v1health) - Health check
+23. [GET /v1/health](#get-v1health) - Health check
 
 ---
 
@@ -848,19 +847,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/user-projects/:projectId/papers/:paperId
+### GET /v1/papers/:paperId
 
-**Description**: Get a specific candidate paper by ID.
+**Description**: Get a specific candidate paper by its ID (Simplified direct access).
 
 **Authentication**: Required (JWT)  
-**Roles**: Authenticated User (must own the project)
+**Roles**: Authenticated User (must own the project containing the paper)
 
 ---
 
 #### Input Structure
 
 **Path Parameters**:
-- `:projectId` (string, required) — Project UUID
 - `:paperId` (string, required) — Paper UUID
 
 **Headers**:
@@ -885,7 +883,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 #### Sample Request
 
 ```bash
-GET /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers/paper_123e4567-e89b-12d3-a456-426614174000
+GET /v1/papers/paper_123e4567-e89b-12d3-a456-426614174000
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
@@ -952,9 +950,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 #### Business Logic Notes
 
-- Returns complete paper details including all LLM analysis fields
-- User must own the project to view the paper
-- Paper must belong to the specified project
+- This is a convenience alias for `GET /v1/user-projects/:projectId/papers/:paperId`
+- It does not require `projectId` in the URL
+- It automatically verifies that the logged-in user owns the project associated with this paper
 
 ---
 
@@ -1188,95 +1186,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/papers/:paperId
 
-**Description**: Get a specific candidate paper by its ID (Simplified direct access).
 
-**Authentication**: Required (JWT)  
-**Roles**: Authenticated User (must own the project containing the paper)
 
----
 
-#### Input Structure
 
-**Path Parameters**:
-- `:paperId` (string, required) — Paper UUID
 
-**Headers**:
-- `Authorization: Bearer <accessToken>` (required)
 
----
 
-#### Output Structure
 
-**Success Response** (200 OK):
-```typescript
-{
-  success: true;
-  data: {
-    paper: CandidatePaper;  // Complete paper object
-  };
-}
-```
-
----
-
-#### Sample Request
-
-```bash
-GET /v1/papers/paper_123e4567-e89b-12d3-a456-426614174000
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
----
-
-#### Sample Response
-
-**Success (200 OK)**:
-```json
-{
-  "success": true,
-  "data": {
-    "paper": {
-      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
-      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
-      "paperTitle": "Attention Is All You Need",
-      "paperAbstract": "The dominant sequence transduction models...",
-      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762",
-      "isProcessedByLlm": false,
-      "createdAt": "2025-12-31T15:00:00.000Z",
-      "updatedAt": "2025-12-31T15:00:00.000Z"
-    }
-  }
-}
-```
-
----
-
-#### Error Cases
-
-| Status | Error Code | Description | Example |
-|--------|------------|-------------|---------|
-| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
-| 403 | `FORBIDDEN` | Not paper owner | User doesn't own the parent project |
-| 404 | `NOT_FOUND` | Paper not found | Invalid paper ID |
-| 500 | `INTERNAL_ERROR` | Server error | Database error |
-
----
-
-#### Diagrams
-
-**Diagrams**: Not required (simple CRUD operation)
-
----
-
-#### Business Logic Notes
-
-- This is a convenience alias for `GET /v1/user-projects/:projectId/papers/:paperId`
-- It does not require `projectId` in the URL
-- It automatically verifies that the logged-in user owns the project associated with this paper
-
----
 
 ## LLM Pipeline Endpoints
 
