@@ -11,6 +11,25 @@ A full-stack intelligent system for automated literature review and research gap
 - ✅ **PostgreSQL Database**: Secure data persistence
 - ✅ **RESTful API**: Well-documented backend API
 
+## ⚠️ **IMPORTANT: Project Rules & Standards**
+
+**All contributors and AI assistants (including Antigravity) MUST follow [`rules.md`](./rules.md)**
+
+This project enforces strict quality standards:
+- ✅ **Comprehensive API documentation** with input/output schemas, samples, and error cases
+- ✅ **Database ER diagram** (MANDATORY - updated with ANY schema change)
+- ✅ **Post-Implementation Checklist** (9 categories verified for every change)
+- ✅ **Naming conventions** (semantic naming, no vague names)
+- ✅ **Testing standards** (minimum 70% coverage)
+- ✅ **Documentation-first** approach (single source of truth)
+
+**Key Files:**
+- [`rules.md`](./rules.md) - Complete project rules and standards
+- [`MIGRATION_GUIDE.md`](./MIGRATION_GUIDE.md) - How to bring existing code into compliance
+- [`.antigravity`](./.antigravity) - Antigravity configuration
+
+**For Antigravity users**: Configure Antigravity to use `rules.md` as custom rules file.
+
 ## 🚀 Quick Start
 
 ### Backend Setup
