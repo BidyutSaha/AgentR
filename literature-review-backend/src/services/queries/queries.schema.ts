@@ -10,6 +10,8 @@ export const queriesRequestSchema = z.object({
     constraints: z.array(z.string()),
     contributionTypes: z.array(z.string()),
     keywords_seed: z.array(z.string()),
+    projectId: z.string().uuid().optional(), // Optional: for tracking LLM usage per project
+    paperId: z.string().uuid().optional(), // Optional: for tracking LLM usage per paper
 });
 
 export type QueriesRequest = z.infer<typeof queriesRequestSchema>;

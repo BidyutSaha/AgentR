@@ -4,6 +4,8 @@ import { z } from 'zod';
 export const categorizeRequestSchema = z.object({
     userAbstract: z.string().min(10, 'User abstract must be at least 10 characters'),
     candidateAbstract: z.string().min(10, 'Candidate abstract must be at least 10 characters'),
+    projectId: z.string().uuid().optional(), // Optional: for tracking LLM usage per project
+    paperId: z.string().uuid().optional(), // Optional: for tracking LLM usage per paper
 });
 
 export type CategorizeRequest = z.infer<typeof categorizeRequestSchema>;

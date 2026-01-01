@@ -21,6 +21,8 @@ This content should be inserted into `03_API.md` before the "LLM Usage Tracking 
 ```typescript
 {
   abstract: string;        // Research abstract (max 5000 characters)
+  projectId?: string;      // Optional: UUID of project (for usage tracking)
+  paperId?: string;        // Optional: UUID of paper (for usage tracking)
 }
 ```
 
@@ -153,7 +155,13 @@ Content-Type: application/json
 - Extracts 8 key components from research abstract
 - Keywords are seed keywords for Stage 2 expansion
 - Usage metadata enables billing tracking per user
-- All LLM calls are automatically logged to `llm_usage_logs` table
+- **Automatic LLM Usage Logging**: Every call is logged to `llm_usage_logs` table with:
+  - User ID (from JWT token)
+  - Optional project ID and paper ID (from request body)
+  - Model name, token usage (input/output/total)
+  - Estimated cost (calculated from `llm_model_pricing` table)
+  - Duration, request ID, and timestamp
+- Costs are calculated using the latest pricing tier for the model from the pricing table
 
 ---
 
@@ -179,6 +187,8 @@ Content-Type: application/json
   applicationDomains: string[];
   contributionTypes: string[];
   keywords_seed: string[];
+  projectId?: string;      // Optional: UUID of project (for usage tracking)
+  paperId?: string;        // Optional: UUID of paper (for usage tracking)
 }
 ```
 
@@ -306,6 +316,7 @@ Content-Type: application/json
 - Generates Boolean query for academic search engines
 - Typical expansion: 5-8 seed keywords → 10-20 expanded keywords
 - Boolean query uses AND/OR logic for comprehensive search
+- **Automatic LLM Usage Logging**: Every call is logged to `llm_usage_logs` table with user ID, optional project/paper IDs, token usage, and estimated cost
 
 ---
 
@@ -325,6 +336,8 @@ Content-Type: application/json
 {
   userAbstract: string;          // User's research abstract
   candidateAbstract: string;     // Candidate paper abstract to evaluate
+  projectId?: string;            // Optional: UUID of project (for usage tracking)
+  paperId?: string;              // Optional: UUID of paper (for usage tracking)
 }
 ```
 
@@ -468,5 +481,6 @@ Content-Type: application/json
 - User novelty highlights unique contributions
 - Helps researchers understand competitive landscape
 - Enables citation decision-making
+- **Automatic LLM Usage Logging**: Every call is logged to `llm_usage_logs` table with user ID, optional project/paper IDs, token usage, and estimated cost
 
 ---

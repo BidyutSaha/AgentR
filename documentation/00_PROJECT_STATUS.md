@@ -115,6 +115,20 @@ Complete production-ready codebase cleanup and bring project into full complianc
 
 ## Recent Changes
 
+### 2026-01-01
+- **✅ LLM Usage Logging Implementation**
+  - Added automatic LLM usage logging to all stage endpoints (intent, queries, score)
+  - Logs capture: user ID, optional project ID/paper ID, model name, token usage, duration
+  - Automatic cost calculation using `llm_model_pricing` table
+  - Updated all stage request schemas to accept optional `projectId` and `paperId`
+  - Updated stage endpoint documentation with usage tracking details
+  - All LLM calls now tracked in `llm_usage_logs` table for billing and analytics
+- **✅ Fixed Cost Calculation Issue**
+  - Created `scripts/seed-pricing.js` to populate pricing data
+  - Seeded pricing for all common OpenAI models (gpt-4o, gpt-4o-mini, gpt-4-turbo, etc.)
+  - Costs now calculated correctly for all LLM API calls
+  - Created `LLM_USAGE_COST_FIX.md` documentation
+
 ### 2025-12-31
 - **✅ PHASE 3 COMPLETE: Diagrams**
   - Created 6 PlantUML diagrams for LLM workflows
