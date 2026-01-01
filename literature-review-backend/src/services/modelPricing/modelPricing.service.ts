@@ -64,9 +64,9 @@ export async function createModelPricing(
                     modelName: data.modelName,
                     provider: data.provider,
                     pricingTier: data.pricingTier || 'standard',
-                    inputUsdCentsPerMillionTokens: data.inputUsdCentsPerMillionTokens,
-                    outputUsdCentsPerMillionTokens: data.outputUsdCentsPerMillionTokens,
-                    cachedInputUsdCentsPerMillionTokens: data.cachedInputUsdCentsPerMillionTokens,
+                    inputUsdPricePerMillionTokens: data.inputUsdPricePerMillionTokens,
+                    outputUsdPricePerMillionTokens: data.outputUsdPricePerMillionTokens,
+                    cachedInputUsdPricePerMillionTokens: data.cachedInputUsdPricePerMillionTokens,
                     description: data.description,
                     notes: data.notes,
                     effectiveFrom: data.effectiveFrom ? new Date(data.effectiveFrom) : new Date(),
@@ -248,9 +248,9 @@ export async function updateModelPricing(
         const updated = await prisma.llmModelPricing.update({
             where: { id },
             data: {
-                inputUsdCentsPerMillionTokens: data.inputUsdCentsPerMillionTokens,
-                outputUsdCentsPerMillionTokens: data.outputUsdCentsPerMillionTokens,
-                cachedInputUsdCentsPerMillionTokens: data.cachedInputUsdCentsPerMillionTokens,
+                inputUsdPricePerMillionTokens: data.inputUsdPricePerMillionTokens,
+                outputUsdPricePerMillionTokens: data.outputUsdPricePerMillionTokens,
+                cachedInputUsdPricePerMillionTokens: data.cachedInputUsdPricePerMillionTokens,
                 description: data.description,
                 notes: data.notes,
                 isActive: data.isActive,
@@ -344,13 +344,11 @@ export async function calculateCost(
     outputTokens: number,
     provider: string = 'openai'
 ): Promise<{
-    inputCostCents: number;
-    outputCostCents: number;
-    totalCostCents: number;
+    inputCostUsd: number;
+    outputCostUsd: number;
+    totalCostUsd: number;
 }> {
-    console.log(`Debug: calculateCost called for model=${modelName}, provider=${provider}, tokens=${inputTokens}/${outputTokens}`);
     const pricing = await getLatestModelPricing(modelName, provider);
-    console.log(`Debug: getLatestModelPricing result for ${modelName}:`, pricing ? 'Found' : 'NULL');
 
     if (!pricing) {
         logger.warn({
@@ -359,39 +357,23 @@ export async function calculateCost(
             provider,
         });
 
-        // Return zero cost if no pricing found
         return {
-            inputCostCents: 0,
-            outputCostCents: 0,
-            totalCostCents: 0,
+            inputCostUsd: 0,
+            outputCostUsd: 0,
+            totalCostUsd: 0,
         };
     }
 
-    // Calculate costs (pricing is per million tokens, stored in cents)
-    // Use floating point math first
-    const inputCostFloat = (inputTokens / 1_000_000) * pricing.inputUsdCentsPerMillionTokens;
-    const outputCostFloat = (outputTokens / 1_000_000) * pricing.outputUsdCentsPerMillionTokens;
-
-    // Round individual components normally
-    const inputCostCents = Math.round(inputCostFloat);
-    const outputCostCents = Math.round(outputCostFloat);
-
-    // For total cost, if there was usage but cost is < 1, round UP to 1 to show activity
-    let totalCostCents = Math.round(inputCostFloat + outputCostFloat);
-
-    if (totalCostCents === 0 && (inputTokens > 0 || outputTokens > 0)) {
-        logger.info({
-            action: 'calculate_cost_rounding',
-            message: 'Rounding up small cost to 1 cent for visibility',
-            actualCost: inputCostFloat + outputCostFloat
-        });
-        totalCostCents = 1;
-    }
+    // Calculate costs using Float fields (USD per million tokens)
+    // No rounding: preserve full precision
+    const inputCostUsd = (inputTokens / 1_000_000) * pricing.inputUsdPricePerMillionTokens;
+    const outputCostUsd = (outputTokens / 1_000_000) * pricing.outputUsdPricePerMillionTokens;
+    const totalCostUsd = inputCostUsd + outputCostUsd;
 
     return {
-        inputCostCents,
-        outputCostCents,
-        totalCostCents,
+        inputCostUsd,
+        outputCostUsd,
+        totalCostUsd,
     };
 }
 
@@ -404,9 +386,9 @@ function formatModelPricingResponse(pricing: any): ModelPricingResponse {
         modelName: pricing.modelName,
         provider: pricing.provider,
         pricingTier: pricing.pricingTier,
-        inputUsdCentsPerMillionTokens: pricing.inputUsdCentsPerMillionTokens,
-        outputUsdCentsPerMillionTokens: pricing.outputUsdCentsPerMillionTokens,
-        cachedInputUsdCentsPerMillionTokens: pricing.cachedInputUsdCentsPerMillionTokens,
+        inputUsdPricePerMillionTokens: pricing.inputUsdPricePerMillionTokens,
+        outputUsdPricePerMillionTokens: pricing.outputUsdPricePerMillionTokens,
+        cachedInputUsdPricePerMillionTokens: pricing.cachedInputUsdPricePerMillionTokens,
         isActive: pricing.isActive,
         isLatest: pricing.isLatest,
         description: pricing.description,

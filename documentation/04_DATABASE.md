@@ -506,6 +506,35 @@ VACUUM ANALYZE user_projects;
 
 ---
 
+## Table: llm_model_pricing
+
+**Description**: Stores pricing structure for different LLM models and tiers. Used to calculate usage costs.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique pricing identifier |
+| model_name | VARCHAR | NOT NULL | e.g. 'gpt-4o-mini' |
+| provider | VARCHAR | NOT NULL | e.g. 'openai' |
+| pricing_tier | VARCHAR | NOT NULL | 'standard', 'batch', etc. |
+| input_usd_price_per_million_tokens | FLOAT | NOT NULL | Cost per 1M input tokens in USD |
+| output_usd_price_per_million_tokens | FLOAT | NOT NULL | Cost per 1M output tokens in USD |
+| cached_input_usd_price_per_million_tokens | FLOAT | NULL | Discounted cached input price |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | Whether this pricing is usable |
+| is_latest | BOOLEAN | NOT NULL, DEFAULT true | Whether this is the current active price |
+| effective_from | TIMESTAMP | NOT NULL | Start date of valid price |
+| effective_to | TIMESTAMP | NULL | End date of valid price |
+| created_at | TIMESTAMP | NOT NULL | Record creation |
+| updated_at | TIMESTAMP | NOT NULL | Record update |
+
+### Indexes
+
+- `idx_uniq_pricing` (unique) on (model, provider, tier, effective_from)
+- `idx_latest` on (model, provider, tier, is_latest)
+
+---
+
 ## Table: llm_usage_logs
 
 **Description**: Tracks all LLM API calls for billing, analytics, and cost monitoring. Records token usage, costs, performance metrics, and metadata for every OpenAI API call made by the system.
@@ -524,9 +553,9 @@ VACUUM ANALYZE user_projects;
 | input_tokens | INTEGER | NOT NULL | Number of input tokens |
 | output_tokens | INTEGER | NOT NULL | Number of output tokens |
 | total_tokens | INTEGER | NOT NULL | Total tokens (input + output) |
-| input_cost_cents | INTEGER | NULL | Cost of input tokens in cents |
-| output_cost_cents | INTEGER | NULL | Cost of output tokens in cents |
-| total_cost_cents | INTEGER | NULL | Total cost in cents |
+| input_cost_usd | FLOAT | NULL | Cost of input tokens in USD |
+| output_cost_usd | FLOAT | NULL | Cost of output tokens in USD |
+| total_cost_usd | FLOAT | NULL | Total cost in USD |
 | duration_ms | INTEGER | NULL | API call duration in milliseconds |
 | request_id | VARCHAR | NULL | OpenAI request ID for debugging |
 | status | VARCHAR | NOT NULL, DEFAULT 'success' | Call status ('success', 'error', 'timeout') |
@@ -555,8 +584,8 @@ VACUUM ANALYZE user_projects;
 
 ### Business Logic
 
-- **Cost Calculation**: Costs are stored in cents to avoid floating-point precision issues
-  - Example: $1.25 is stored as 125 cents
+- **Cost Calculation**: Costs are stored in USD (Float) for precision
+  - Example: $1.25 is stored as 1.25
 - **Pricing**: Based on current OpenAI pricing per 1M tokens
   - gpt-4o-mini: $0.15 input, $0.60 output per 1M tokens
   - gpt-4o: $2.50 input, $10.00 output per 1M tokens
@@ -571,7 +600,7 @@ VACUUM ANALYZE user_projects;
 **Get user's monthly bill**:
 ```sql
 SELECT 
-  SUM(total_cost_cents) / 100.0 AS total_cost_usd,
+  SUM(total_cost_usd) AS total_cost_usd,
   COUNT(*) AS total_calls,
   SUM(total_tokens) AS total_tokens
 FROM llm_usage_logs
@@ -586,7 +615,7 @@ SELECT
   stage,
   COUNT(*) AS calls,
   SUM(total_tokens) AS tokens,
-  SUM(total_cost_cents) / 100.0 AS cost_usd
+  SUM(total_cost_usd) AS cost_usd
 FROM llm_usage_logs
 WHERE user_id = 'user_123'
 GROUP BY stage

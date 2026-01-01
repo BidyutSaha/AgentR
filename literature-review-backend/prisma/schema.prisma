@@ -200,10 +200,10 @@ model LlmModelPricing {
   // Pricing Tier (for providers that support multiple tiers like OpenAI)
   pricingTier String   @default("standard") @map("pricing_tier") // 'batch', 'flex', 'standard', 'priority'
   
-  // Pricing (in USD cents per million tokens, stored as integers to avoid floating point issues)
-  inputUsdCentsPerMillionTokens        Int  @map("input_usd_cents_per_million_tokens") // e.g., 150000 = $1.50 per 1M tokens
-  outputUsdCentsPerMillionTokens       Int  @map("output_usd_cents_per_million_tokens") // e.g., 600000 = $6.00 per 1M tokens
-  cachedInputUsdCentsPerMillionTokens  Int? @map("cached_input_usd_cents_per_million_tokens") // For models with prompt caching
+  // Pricing (in USD per million tokens, stored as Float)
+  inputUsdPricePerMillionTokens        Float  @map("input_usd_price_per_million_tokens") // e.g., 1.50 = $1.50 per 1M tokens
+  outputUsdPricePerMillionTokens       Float  @map("output_usd_price_per_million_tokens") // e.g., 6.00 = $6.00 per 1M tokens
+  cachedInputUsdPricePerMillionTokens  Float? @map("cached_input_usd_price_per_million_tokens") // For models with prompt caching
   
   // Versioning and Status
   isActive    Boolean  @default(true) @map("is_active") // Only active pricing is used for calculations
@@ -248,10 +248,10 @@ model LlmUsageLog {
   outputTokens    Int      @map("output_tokens")
   totalTokens     Int      @map("total_tokens")
   
-  // Cost Tracking (in USD, stored as cents to avoid floating point issues)
-  inputCostCents  Int?     @map("input_cost_cents") // Cost in cents (e.g., 150 = $1.50)
-  outputCostCents Int?     @map("output_cost_cents")
-  totalCostCents  Int?     @map("total_cost_cents")
+  // Cost Tracking (in USD, stored as Float)
+  inputCostUsd    Float?   @map("input_cost_usd") 
+  outputCostUsd   Float?   @map("output_cost_usd")
+  totalCostUsd    Float?   @map("total_cost_usd")
   
   // Performance Metrics
   durationMs      Int?     @map("duration_ms") // Time taken for API call in milliseconds

@@ -116,6 +116,13 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ## Recent Changes
 
 ### 2026-01-01
+- **✅ Refactored LLM Pricing to USD (Float)**
+  - Switched database schema from Integer Cents to Float USD for accuracy
+  - Updated `llm_model_pricing` and `llm_usage_logs` tables
+  - Refactored `calculateCost` logic to support fractional cents
+  - Updated seed scripts with correct USD pricing for OpenAI models
+  - Fixed duplicate/conflicting `llmUsage.service.ts` to use centralized pricing logic
+  - Updated ER Diagram and API Documentation
 - **✅ LLM Usage Logging Implementation**
   - Added automatic LLM usage logging to all stage endpoints (intent, queries, score)
   - Logs capture: user ID, optional project ID/paper ID, model name, token usage, duration

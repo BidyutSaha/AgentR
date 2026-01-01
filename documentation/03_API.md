@@ -1777,19 +1777,19 @@ These diagrams show:
       totalInputTokens: number;
       totalOutputTokens: number;
       totalTokens: number;
-      totalCostCents: number;
       totalCostUsd: number;
       byStage: Record<string, {
         count: number;
         totalTokens: number;
-        totalCostCents: number;
+        totalCostUsd: number;
       }>;
       byModel: Record<string, {
         count: number;
         totalTokens: number;
-        totalCostCents: number;
+        totalCostUsd: number;
       }>;
     };
+
   };
 }
 ```
@@ -1817,25 +1817,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       "totalInputTokens": 30000,
       "totalOutputTokens": 15000,
       "totalTokens": 45000,
-      "totalCostCents": 125,
       "totalCostUsd": 1.25,
       "byStage": {
         "intent": {
           "count": 50,
           "totalTokens": 15000,
-          "totalCostCents": 45
+          "totalCostUsd": 0.45
         },
         "score": {
           "count": 100,
           "totalTokens": 30000,
-          "totalCostCents": 80
+          "totalCostUsd": 0.80
         }
       },
       "byModel": {
         "gpt-4o-mini": {
           "count": 150,
           "totalTokens": 45000,
-          "totalCostCents": 125
+          "totalCostUsd": 1.25
         }
       }
     },
@@ -1847,8 +1846,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         "inputTokens": 200,
         "outputTokens": 100,
         "totalTokens": 300,
-        "totalCostCents": 1,
+        "totalCostUsd": 0.01,
         "durationMs": 1500,
+
         "createdAt": "2025-01-15T10:30:00.000Z"
       }
     ]
@@ -1918,7 +1918,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     summary: {
       totalCalls: number;
       totalTokens: number;
-      totalCostCents: number;
       totalCostUsd: number;
     };
   };
@@ -1946,7 +1945,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     "summary": {
       "totalCalls": 75,
       "totalTokens": 22500,
-      "totalCostCents": 62,
       "totalCostUsd": 0.62
     },
     "logs": [...]
@@ -2017,7 +2015,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       };
       totalCalls: number;
       totalTokens: number;
-      totalCostCents: number;
       totalCostUsd: number;
     }>;
     totalUsers: number;
@@ -2052,21 +2049,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
           "firstName": "John",
           "lastName": "Doe"
         },
-        "totalCalls": 150,
-        "totalTokens": 45000,
-        "totalCostCents": 125,
-        "totalCostUsd": 1.25
-      },
-      {
-        "user": {
-          "id": "user_456",
-          "email": "jane@example.com",
-          "firstName": "Jane",
-          "lastName": "Smith"
-        },
         "totalCalls": 200,
         "totalTokens": 60000,
-        "totalCostCents": 180,
         "totalCostUsd": 1.80
       }
     ],

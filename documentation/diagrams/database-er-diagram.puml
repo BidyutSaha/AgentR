@@ -101,9 +101,9 @@ entity "llm_model_pricing" as model_pricing {
   * model_name : VARCHAR(100)
   * provider : VARCHAR(50)
   * pricing_tier : VARCHAR(50)
-  * input_usd_cents_per_million_tokens : INTEGER
-  * output_usd_cents_per_million_tokens : INTEGER
-  cached_input_usd_cents_per_million_tokens : INTEGER
+  * input_usd_price_per_million_tokens : FLOAT
+  * output_usd_price_per_million_tokens : FLOAT
+  cached_input_usd_price_per_million_tokens : FLOAT
   * is_active : BOOLEAN
   * is_latest : BOOLEAN
   description : TEXT
@@ -126,9 +126,9 @@ entity "llm_usage_logs" as llm_logs {
   * input_tokens : INTEGER
   * output_tokens : INTEGER
   * total_tokens : INTEGER
-  input_cost_cents : INTEGER
-  output_cost_cents : INTEGER
-  total_cost_cents : INTEGER
+  input_cost_usd : FLOAT
+  output_cost_usd : FLOAT
+  total_cost_usd : FLOAT
   duration_ms : INTEGER
   request_id : VARCHAR(255)
   * status : VARCHAR(20)
@@ -202,7 +202,7 @@ note right of model_pricing
   - Supports cached input pricing
   - Supports versioning (effective dates)
   - isLatest flag for current pricing per tier
-  - Prices in cents per million tokens
+  - Prices in USD per million tokens (Float)
   - Admin-only management
 end note
 

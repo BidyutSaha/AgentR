@@ -20,36 +20,36 @@ const PRICING_DATA = [
         modelName: 'gpt-4o',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 250,      // $2.50 per 1M tokens
-        outputUsdCentsPerMillionTokens: 1000,    // $10.00 per 1M tokens
-        cachedInputUsdCentsPerMillionTokens: 125, // $1.25 per 1M tokens (50% off)
+        inputUsdPricePerMillionTokens: 2.50,      // $2.50 per 1M tokens
+        outputUsdPricePerMillionTokens: 10.00,    // $10.00 per 1M tokens
+        cachedInputUsdPricePerMillionTokens: 1.25, // $1.25 per 1M tokens (50% off)
         description: 'GPT-4o - Standard tier with prompt caching',
     },
     {
         modelName: 'gpt-4o',
         provider: 'openai',
         pricingTier: 'batch',
-        inputUsdCentsPerMillionTokens: 125,      // $1.25 per 1M tokens (50% off)
-        outputUsdCentsPerMillionTokens: 500,     // $5.00 per 1M tokens (50% off)
-        cachedInputUsdCentsPerMillionTokens: 63,  // $0.63 per 1M tokens
+        inputUsdPricePerMillionTokens: 1.25,      // $1.25 per 1M tokens (50% off)
+        outputUsdPricePerMillionTokens: 5.00,     // $5.00 per 1M tokens (50% off)
+        cachedInputUsdPricePerMillionTokens: 0.63,  // $0.63 per 1M tokens
         description: 'GPT-4o - Batch tier (50% discount)',
     },
     {
         modelName: 'gpt-4o-mini',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 2.5,      // $0.025 per 1M tokens
-        outputUsdCentsPerMillionTokens: 25,      // $0.25 per 1M tokens
-        cachedInputUsdCentsPerMillionTokens: 1.25, // $0.0125 per 1M tokens (50% off)
-        description: 'GPT-4o-mini - Standard tier with prompt caching',
+        inputUsdPricePerMillionTokens: 0.15,      // $0.15 per 1M tokens (Corrected from earlier 2.5c which was wrong/too low)
+        outputUsdPricePerMillionTokens: 0.60,      // $0.60 per 1M tokens
+        cachedInputUsdPricePerMillionTokens: 0.075, // $0.075 per 1M tokens
+        description: 'GPT-4o-mini - Standard tier',
     },
     {
         modelName: 'gpt-4o-mini',
         provider: 'openai',
         pricingTier: 'batch',
-        inputUsdCentsPerMillionTokens: 1.25,     // $0.0125 per 1M tokens (50% off)
-        outputUsdCentsPerMillionTokens: 12.5,    // $0.125 per 1M tokens (50% off)
-        cachedInputUsdCentsPerMillionTokens: 0.625, // $0.00625 per 1M tokens
+        inputUsdPricePerMillionTokens: 0.075,
+        outputUsdPricePerMillionTokens: 0.30,
+        cachedInputUsdPricePerMillionTokens: 0.0375,
         description: 'GPT-4o-mini - Batch tier (50% discount)',
     },
 
@@ -58,18 +58,18 @@ const PRICING_DATA = [
         modelName: 'gpt-4-turbo',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 1000,     // $10.00 per 1M tokens
-        outputUsdCentsPerMillionTokens: 3000,    // $30.00 per 1M tokens
-        cachedInputUsdCentsPerMillionTokens: null,
+        inputUsdPricePerMillionTokens: 10.00,     // $10.00 per 1M tokens
+        outputUsdPricePerMillionTokens: 30.00,    // $30.00 per 1M tokens
+        cachedInputUsdPricePerMillionTokens: null,
         description: 'GPT-4 Turbo - Standard tier',
     },
     {
         modelName: 'gpt-4-turbo-preview',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 1000,     // $10.00 per 1M tokens
-        outputUsdCentsPerMillionTokens: 3000,    // $30.00 per 1M tokens
-        cachedInputUsdCentsPerMillionTokens: null,
+        inputUsdPricePerMillionTokens: 10.00,     // $10.00 per 1M tokens
+        outputUsdPricePerMillionTokens: 30.00,    // $30.00 per 1M tokens
+        cachedInputUsdPricePerMillionTokens: null,
         description: 'GPT-4 Turbo Preview - Standard tier',
     },
 
@@ -78,9 +78,9 @@ const PRICING_DATA = [
         modelName: 'gpt-3.5-turbo',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 50,       // $0.50 per 1M tokens
-        outputUsdCentsPerMillionTokens: 150,     // $1.50 per 1M tokens
-        cachedInputUsdCentsPerMillionTokens: null,
+        inputUsdPricePerMillionTokens: 0.50,       // $0.50 per 1M tokens
+        outputUsdPricePerMillionTokens: 1.50,     // $1.50 per 1M tokens
+        cachedInputUsdPricePerMillionTokens: null,
         description: 'GPT-3.5 Turbo - Standard tier',
     },
 
@@ -89,24 +89,24 @@ const PRICING_DATA = [
         modelName: 'text-embedding-3-small',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 2,        // $0.02 per 1M tokens
-        outputUsdCentsPerMillionTokens: 0,       // No output tokens for embeddings
-        cachedInputUsdCentsPerMillionTokens: null,
+        inputUsdPricePerMillionTokens: 0.02,        // $0.02 per 1M tokens
+        outputUsdPricePerMillionTokens: 0.00,       // No output tokens for embeddings
+        cachedInputUsdPricePerMillionTokens: null,
         description: 'Text Embedding 3 Small',
     },
     {
         modelName: 'text-embedding-3-large',
         provider: 'openai',
         pricingTier: 'standard',
-        inputUsdCentsPerMillionTokens: 13,       // $0.13 per 1M tokens
-        outputUsdCentsPerMillionTokens: 0,       // No output tokens for embeddings
-        cachedInputUsdCentsPerMillionTokens: null,
+        inputUsdPricePerMillionTokens: 0.13,       // $0.13 per 1M tokens
+        outputUsdPricePerMillionTokens: 0.00,       // No output tokens for embeddings
+        cachedInputUsdPricePerMillionTokens: null,
         description: 'Text Embedding 3 Large',
     },
 ];
 
 async function seedPricing() {
-    console.log('🌱 Seeding LLM model pricing data...\n');
+    console.log('🌱 Seeding LLM model pricing data (USD)...\n');
 
     let created = 0;
     let skipped = 0;
@@ -135,9 +135,9 @@ async function seedPricing() {
                     modelName: pricing.modelName,
                     provider: pricing.provider,
                     pricingTier: pricing.pricingTier,
-                    inputUsdCentsPerMillionTokens: pricing.inputUsdCentsPerMillionTokens,
-                    outputUsdCentsPerMillionTokens: pricing.outputUsdCentsPerMillionTokens,
-                    cachedInputUsdCentsPerMillionTokens: pricing.cachedInputUsdCentsPerMillionTokens,
+                    inputUsdPricePerMillionTokens: pricing.inputUsdPricePerMillionTokens,
+                    outputUsdPricePerMillionTokens: pricing.outputUsdPricePerMillionTokens,
+                    cachedInputUsdPricePerMillionTokens: pricing.cachedInputUsdPricePerMillionTokens,
                     description: pricing.description,
                     isActive: true,
                     isLatest: true,
@@ -146,12 +146,7 @@ async function seedPricing() {
             });
 
             console.log(`✅ Created: ${pricing.modelName} (${pricing.pricingTier})`);
-            console.log(`   Input: $${(pricing.inputUsdCentsPerMillionTokens / 100).toFixed(2)}/1M tokens`);
-            console.log(`   Output: $${(pricing.outputUsdCentsPerMillionTokens / 100).toFixed(2)}/1M tokens`);
-            if (pricing.cachedInputUsdCentsPerMillionTokens) {
-                console.log(`   Cached: $${(pricing.cachedInputUsdCentsPerMillionTokens / 100).toFixed(2)}/1M tokens`);
-            }
-            console.log();
+            console.log(`   Input: $${pricing.inputUsdPricePerMillionTokens}/1M tokens`);
             created++;
         } catch (error) {
             console.error(`❌ Error creating pricing for ${pricing.modelName}:`, error.message);

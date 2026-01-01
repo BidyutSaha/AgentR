@@ -56,9 +56,9 @@ The LLM Model Pricing Management system allows administrators to manage pricing 
 | `model_name` | VARCHAR(100) | Model identifier (e.g., 'gpt-4o-mini') |
 | `provider` | VARCHAR(50) | Provider name (default: 'openai') |
 | `pricing_tier` | VARCHAR(50) | Pricing tier: 'batch', 'flex', 'standard', 'priority' |
-| `input_usd_cents_per_million_tokens` | INTEGER | Input price in cents per 1M tokens |
-| `output_usd_cents_per_million_tokens` | INTEGER | Output price in cents per 1M tokens |
-| `cached_input_usd_cents_per_million_tokens` | INTEGER (nullable) | Cached input price in cents per 1M tokens |
+| `input_usd_price_per_million_tokens` | FLOAT | Input price in USD per 1M tokens |
+| `output_usd_price_per_million_tokens` | FLOAT | Output price in USD per 1M tokens |
+| `cached_input_usd_price_per_million_tokens` | FLOAT (nullable) | Cached input price in USD per 1M tokens |
 | `is_active` | BOOLEAN | Whether this pricing is active |
 | `is_latest` | BOOLEAN | Whether this is the latest pricing for the model/tier |
 | `description` | TEXT | Optional description |
@@ -106,9 +106,9 @@ All endpoints require **admin authentication**.
   "modelName": "gpt-4o",
   "provider": "openai",
   "pricingTier": "standard",
-  "inputUsdCentsPerMillionTokens": 2500000,
-  "outputUsdCentsPerMillionTokens": 10000000,
-  "cachedInputUsdCentsPerMillionTokens": 1250000,
+  "inputUsdPricePerMillionTokens": 2.50,
+  "outputUsdPricePerMillionTokens": 10.00,
+  "cachedInputUsdPricePerMillionTokens": 1.25,
   "description": "GPT-4o Standard Tier with prompt caching",
   "notes": "Initial pricing as of Jan 2026",
   "effectiveFrom": "2026-01-01T00:00:00Z"
@@ -119,9 +119,9 @@ All endpoints require **admin authentication**.
 - `modelName` (required) - Model identifier (e.g., 'gpt-4o', 'gpt-4o-mini')
 - `provider` (optional, default: 'openai') - Provider name
 - `pricingTier` (optional, default: 'standard') - One of: 'batch', 'flex', 'standard', 'priority'
-- `inputUsdCentsPerMillionTokens` (required) - Input price in cents per 1M tokens
-- `outputUsdCentsPerMillionTokens` (required) - Output price in cents per 1M tokens
-- `cachedInputUsdCentsPerMillionTokens` (optional) - Cached input price in cents per 1M tokens
+- `inputUsdPricePerMillionTokens` (required) - Input price in USD per 1M tokens
+- `outputUsdPricePerMillionTokens` (required) - Output price in USD per 1M tokens
+- `cachedInputUsdPricePerMillionTokens` (optional) - Cached input price in USD per 1M tokens
 - `description` (optional) - Human-readable description
 - `notes` (optional) - Admin notes
 - `effectiveFrom` (optional) - When pricing becomes effective (ISO 8601)
@@ -134,9 +134,9 @@ All endpoints require **admin authentication**.
     "modelName": "gpt-4o",
     "provider": "openai",
     "pricingTier": "standard",
-    "inputUsdCentsPerMillionTokens": 2500000,
-    "outputUsdCentsPerMillionTokens": 10000000,
-    "cachedInputUsdCentsPerMillionTokens": 1250000,
+    "inputUsdPricePerMillionTokens": 2.50,
+    "outputUsdPricePerMillionTokens": 10.00,
+    "cachedInputUsdPricePerMillionTokens": 1.25,
     "isActive": true,
     "isLatest": true,
     "description": "GPT-4o Standard Tier with prompt caching",
@@ -190,9 +190,9 @@ GET /v1/admin/model-pricing?pricingTier=batch&isActive=true
       "modelName": "gpt-4o",
       "provider": "openai",
       "pricingTier": "standard",
-      "inputUsdCentsPerMillionTokens": 2500000,
-      "outputUsdCentsPerMillionTokens": 10000000,
-      "cachedInputUsdCentsPerMillionTokens": 1250000,
+      "inputUsdPricePerMillionTokens": 2.50,
+      "outputUsdPricePerMillionTokens": 10.00,
+      "cachedInputUsdPricePerMillionTokens": 1.25,
       "isActive": true,
       "isLatest": true,
       "description": "GPT-4o Standard Tier",
@@ -226,9 +226,9 @@ GET /v1/admin/model-pricing?pricingTier=batch&isActive=true
 **Request Body** (all fields optional):
 ```json
 {
-  "inputUsdCentsPerMillionTokens": 3000000,
-  "outputUsdCentsPerMillionTokens": 12000000,
-  "cachedInputUsdCentsPerMillionTokens": 1500000,
+  "inputUsdPricePerMillionTokens": 3.00,
+  "outputUsdPricePerMillionTokens": 12.00,
+  "cachedInputUsdPricePerMillionTokens": 1.50,
   "description": "Updated pricing",
   "notes": "Price increase due to market changes",
   "isActive": true,
@@ -245,9 +245,9 @@ GET /v1/admin/model-pricing?pricingTier=batch&isActive=true
     "modelName": "gpt-4o",
     "provider": "openai",
     "pricingTier": "standard",
-    "inputUsdCentsPerMillionTokens": 3000000,
-    "outputUsdCentsPerMillionTokens": 12000000,
-    "cachedInputUsdCentsPerMillionTokens": 1500000,
+    "inputUsdPricePerMillionTokens": 3.00,
+    "outputUsdPricePerMillionTokens": 12.00,
+    "cachedInputUsdPricePerMillionTokens": 1.50,
     ...
   },
   "meta": {
@@ -268,9 +268,9 @@ These fields can be modified via `PATCH /v1/admin/model-pricing/:id`:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `inputUsdCentsPerMillionTokens` | number | Input token price |
-| `outputUsdCentsPerMillionTokens` | number | Output token price |
-| `cachedInputUsdCentsPerMillionTokens` | number \| null | Cached input price (optional) |
+| `inputUsdPricePerMillionTokens` | number | Input token price |
+| `outputUsdPricePerMillionTokens` | number | Output token price |
+| `cachedInputUsdPricePerMillionTokens` | number \| null | Cached input price (optional) |
 | `description` | string | Human-readable description |
 | `notes` | string \| null | Admin notes (optional) |
 | `isActive` | boolean | Active status flag |
@@ -288,9 +288,9 @@ These fields can be modified via `PATCH /v1/admin/model-pricing/:id`:
 **Example - Full Update:**
 ```json
 {
-  "inputUsdCentsPerMillionTokens": 200,
-  "outputUsdCentsPerMillionTokens": 300,
-  "cachedInputUsdCentsPerMillionTokens": 100,
+  "inputUsdPricePerMillionTokens": 0.20,
+  "outputUsdPricePerMillionTokens": 0.30,
+  "cachedInputUsdPricePerMillionTokens": 0.10,
   "description": "Updated pricing",
   "notes": "Price increase due to market changes",
   "isActive": true,
@@ -370,7 +370,7 @@ Optional fields can be set to `null` or omitted entirely:
 
 // Option A: Send null explicitly
 {
-  "cachedInputUsdCentsPerMillionTokens": null,
+  "cachedInputUsdPricePerMillionTokens": null,
   "notes": null,
   "effectiveTo": null
 }
@@ -385,24 +385,16 @@ Optional fields can be set to `null` or omitted entirely:
 
 #### 📊 **Understanding Price Values**
 
-Prices are stored as **USD cents per million tokens**:
+Prices are stored as **USD per million tokens** (floating point numbers):
 
-| Value | Meaning | Actual Cost |
-|-------|---------|-------------|
-| `100` | 100 cents per 1M tokens | **$1.00** per 1M tokens |
-| `200` | 200 cents per 1M tokens | **$2.00** per 1M tokens |
-| `150000` | 150,000 cents per 1M tokens | **$1,500.00** per 1M tokens |
-| `2500000` | 2,500,000 cents per 1M tokens | **$25,000.00** per 1M tokens |
+| Value | Meaning |
+|-------|---------|
+| `1.00` | **$1.00** per 1M tokens |
+| `2.50` | **$2.50** per 1M tokens |
+| `0.15` | **$0.15** per 1M tokens |
+| `0.02` | **$0.02** per 1M tokens |
 
-**Formula:**
-```
-USD Amount = Value / 100
-```
-
-**Examples:**
-- To store **$2.00** per 1M tokens → use `200`
-- To store **$15.50** per 1M tokens → use `1550`
-- To store **$0.25** per 1M tokens → use `25`
+Prices are stored with full precision to support fractional costs.
 
 ---
 
@@ -435,9 +427,9 @@ Based on OpenAI's actual pricing structure, here's how you'd set up all tiers fo
 {
   "modelName": "gpt-4o",
   "pricingTier": "standard",
-  "inputUsdCentsPerMillionTokens": 2500000,      // $2.50
-  "outputUsdCentsPerMillionTokens": 10000000,    // $10.00
-  "cachedInputUsdCentsPerMillionTokens": 1250000 // $1.25 (50% off)
+  "inputUsdPricePerMillionTokens": 2.50,
+  "outputUsdPricePerMillionTokens": 10.00,
+  "cachedInputUsdPricePerMillionTokens": 1.25
 }
 ```
 
@@ -446,9 +438,9 @@ Based on OpenAI's actual pricing structure, here's how you'd set up all tiers fo
 {
   "modelName": "gpt-4o",
   "pricingTier": "batch",
-  "inputUsdCentsPerMillionTokens": 1250000,      // $1.25
-  "outputUsdCentsPerMillionTokens": 5000000,     // $5.00
-  "cachedInputUsdCentsPerMillionTokens": 625000  // $0.625
+  "inputUsdPricePerMillionTokens": 1.25,
+  "outputUsdPricePerMillionTokens": 5.00,
+  "cachedInputUsdPricePerMillionTokens": 0.625
 }
 ```
 
@@ -457,9 +449,9 @@ Based on OpenAI's actual pricing structure, here's how you'd set up all tiers fo
 {
   "modelName": "gpt-4o",
   "pricingTier": "priority",
-  "inputUsdCentsPerMillionTokens": 3750000,      // $3.75 (50% premium)
-  "outputUsdCentsPerMillionTokens": 15000000,    // $15.00
-  "cachedInputUsdCentsPerMillionTokens": 1875000 // $1.875
+  "inputUsdPricePerMillionTokens": 3.75,
+  "outputUsdPricePerMillionTokens": 15.00,
+  "cachedInputUsdPricePerMillionTokens": 1.875
 }
 ```
 
@@ -511,9 +503,9 @@ const cost = await calculateCost(
 
 console.log(cost);
 // {
-//   inputCostCents: 2500,    // $0.025
-//   outputCostCents: 5000,   // $0.050
-//   totalCostCents: 7500     // $0.075
+//   inputCostUsd: 0.025,
+//   outputCostUsd: 0.050,
+//   totalCostUsd: 0.075
 // }
 ```
 
@@ -525,11 +517,11 @@ If your model supports prompt caching and you want to calculate costs with cache
 // You'll need to extend the calculateCost function to support cached tokens
 const pricing = await getLatestModelPricing('gpt-4o', 'openai', 'standard');
 
-const inputCost = (regularInputTokens / 1_000_000) * pricing.inputUsdCentsPerMillionTokens;
-const cachedInputCost = (cachedInputTokens / 1_000_000) * pricing.cachedInputUsdCentsPerMillionTokens;
-const outputCost = (outputTokens / 1_000_000) * pricing.outputUsdCentsPerMillionTokens;
+const inputCost = (regularInputTokens / 1_000_000) * pricing.inputUsdPricePerMillionTokens;
+const cachedInputCost = (cachedInputTokens / 1_000_000) * pricing.cachedInputUsdPricePerMillionTokens;
+const outputCost = (outputTokens / 1_000_000) * pricing.outputUsdPricePerMillionTokens;
 
-const totalCostCents = Math.round(inputCost + cachedInputCost + outputCost);
+const totalCostUsd = inputCost + cachedInputCost + outputCost;
 ```
 
 ### Integration with LLM Usage Logs
@@ -537,7 +529,7 @@ const totalCostCents = Math.round(inputCost + cachedInputCost + outputCost);
 When logging LLM usage, calculate and store costs:
 
 ```typescript
-const { inputCostCents, outputCostCents, totalCostCents } = await calculateCost(
+const { inputCostUsd, outputCostUsd, totalCostUsd } = await calculateCost(
   modelName,
   inputTokens,
   outputTokens
@@ -551,9 +543,9 @@ await prisma.llmUsageLog.create({
     inputTokens,
     outputTokens,
     totalTokens,
-    inputCostCents,
-    outputCostCents,
-    totalCostCents,
+    inputCostUsd,
+    outputCostUsd,
+    totalCostUsd,
     // ... other fields
   }
 });
@@ -644,9 +636,9 @@ curl -X POST http://localhost:5000/v1/admin/model-pricing \
     "modelName": "gpt-4o",
     "provider": "openai",
     "pricingTier": "standard",
-    "inputUsdCentsPerMillionTokens": 2500000,
-    "outputUsdCentsPerMillionTokens": 10000000,
-    "cachedInputUsdCentsPerMillionTokens": 1250000,
+    "inputUsdPricePerMillionTokens": 2.50,
+    "outputUsdPricePerMillionTokens": 10.00,
+    "cachedInputUsdPricePerMillionTokens": 1.25,
     "description": "GPT-4o Standard Tier"
   }'
 
@@ -658,9 +650,9 @@ curl -X POST http://localhost:5000/v1/admin/model-pricing \
     "modelName": "gpt-4o",
     "provider": "openai",
     "pricingTier": "batch",
-    "inputUsdCentsPerMillionTokens": 1250000,
-    "outputUsdCentsPerMillionTokens": 5000000,
-    "cachedInputUsdCentsPerMillionTokens": 625000,
+    "inputUsdPricePerMillionTokens": 1.25,
+    "outputUsdPricePerMillionTokens": 5.00,
+    "cachedInputUsdPricePerMillionTokens": 0.625,
     "description": "GPT-4o Batch Tier (50% discount)"
   }'
 
@@ -677,7 +669,7 @@ curl -X PATCH http://localhost:5000/v1/admin/model-pricing/{id} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "inputUsdCentsPerMillionTokens": 3000000,
+    "inputUsdPricePerMillionTokens": 3.00,
     "notes": "Price increase"
   }'
 

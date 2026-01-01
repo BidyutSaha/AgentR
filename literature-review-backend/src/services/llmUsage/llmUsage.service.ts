@@ -1,5 +1,6 @@
 import prisma from '../../config/database';
 import logger from '../../config/logger';
+import { calculateCost } from '../modelPricing/modelPricing.service';
 
 /**
  * LLM Usage Tracking Service
@@ -7,51 +8,6 @@ import logger from '../../config/logger';
  * Tracks all LLM API calls for billing and analytics purposes.
  * Captures model, tokens, cost, duration, and other metadata.
  */
-
-// Pricing per 1M tokens (in cents) - Update these based on current OpenAI pricing
-const MODEL_PRICING = {
-    'gpt-4o-mini': {
-        input: 15,      // $0.15 per 1M input tokens
-        output: 60,     // $0.60 per 1M output tokens
-    },
-    'gpt-4o': {
-        input: 250,     // $2.50 per 1M input tokens
-        output: 1000,   // $10.00 per 1M output tokens
-    },
-    'gpt-4-turbo': {
-        input: 1000,    // $10.00 per 1M input tokens
-        output: 3000,   // $30.00 per 1M output tokens
-    },
-    'gpt-4': {
-        input: 3000,    // $30.00 per 1M input tokens
-        output: 6000,   // $60.00 per 1M output tokens
-    },
-    'gpt-3.5-turbo': {
-        input: 50,      // $0.50 per 1M input tokens
-        output: 150,    // $1.50 per 1M output tokens
-    },
-} as const;
-
-type ModelName = keyof typeof MODEL_PRICING;
-
-/**
- * Calculate cost in cents for token usage
- */
-function calculateCost(modelName: string, inputTokens: number, outputTokens: number) {
-    const pricing = MODEL_PRICING[modelName as ModelName];
-
-    if (!pricing) {
-        logger.warn(`Unknown model pricing for: ${modelName}`);
-        return { inputCostCents: null, outputCostCents: null, totalCostCents: null };
-    }
-
-    // Cost = (tokens / 1,000,000) * price_per_million
-    const inputCostCents = Math.round((inputTokens / 1_000_000) * pricing.input);
-    const outputCostCents = Math.round((outputTokens / 1_000_000) * pricing.output);
-    const totalCostCents = inputCostCents + outputCostCents;
-
-    return { inputCostCents, outputCostCents, totalCostCents };
-}
 
 export interface LogLlmUsageInput {
     userId: string;
@@ -75,7 +31,14 @@ export interface LogLlmUsageInput {
 export async function logLlmUsage(data: LogLlmUsageInput) {
     try {
         const totalTokens = data.inputTokens + data.outputTokens;
-        const costs = calculateCost(data.modelName, data.inputTokens, data.outputTokens);
+
+        // Use the centralized pricing service to calculate costs (in USD)
+        const costs = await calculateCost(
+            data.modelName,
+            data.inputTokens,
+            data.outputTokens,
+            data.provider || 'openai'
+        );
 
         const log = await prisma.llmUsageLog.create({
             data: {
@@ -88,9 +51,9 @@ export async function logLlmUsage(data: LogLlmUsageInput) {
                 inputTokens: data.inputTokens,
                 outputTokens: data.outputTokens,
                 totalTokens,
-                inputCostCents: costs.inputCostCents,
-                outputCostCents: costs.outputCostCents,
-                totalCostCents: costs.totalCostCents,
+                inputCostUsd: costs.inputCostUsd,
+                outputCostUsd: costs.outputCostUsd,
+                totalCostUsd: costs.totalCostUsd,
                 durationMs: data.durationMs,
                 requestId: data.requestId,
                 status: data.status || 'success',
@@ -99,7 +62,7 @@ export async function logLlmUsage(data: LogLlmUsageInput) {
             },
         });
 
-        logger.info(`LLM usage logged: ${log.id} - ${data.stage} - ${totalTokens} tokens - $${(costs.totalCostCents || 0) / 100}`);
+        logger.info(`LLM usage logged: ${log.id} - ${data.stage} - ${totalTokens} tokens - $${costs.totalCostUsd.toFixed(6)}`);
 
         return log;
     } catch (error) {
@@ -134,7 +97,7 @@ export async function getUserUsage(
     const totalInputTokens = logs.reduce((sum, log) => sum + log.inputTokens, 0);
     const totalOutputTokens = logs.reduce((sum, log) => sum + log.outputTokens, 0);
     const totalTokens = logs.reduce((sum, log) => sum + log.totalTokens, 0);
-    const totalCostCents = logs.reduce((sum, log) => sum + (log.totalCostCents || 0), 0);
+    const totalCostUsd = logs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
 
     // Group by stage
     const byStage = logs.reduce((acc, log) => {
@@ -142,14 +105,14 @@ export async function getUserUsage(
             acc[log.stage] = {
                 count: 0,
                 totalTokens: 0,
-                totalCostCents: 0,
+                totalCostUsd: 0,
             };
         }
         acc[log.stage].count++;
         acc[log.stage].totalTokens += log.totalTokens;
-        acc[log.stage].totalCostCents += log.totalCostCents || 0;
+        acc[log.stage].totalCostUsd += log.totalCostUsd || 0;
         return acc;
-    }, {} as Record<string, { count: number; totalTokens: number; totalCostCents: number }>);
+    }, {} as Record<string, { count: number; totalTokens: number; totalCostUsd: number }>);
 
     // Group by model
     const byModel = logs.reduce((acc, log) => {
@@ -157,14 +120,14 @@ export async function getUserUsage(
             acc[log.modelName] = {
                 count: 0,
                 totalTokens: 0,
-                totalCostCents: 0,
+                totalCostUsd: 0,
             };
         }
         acc[log.modelName].count++;
         acc[log.modelName].totalTokens += log.totalTokens;
-        acc[log.modelName].totalCostCents += log.totalCostCents || 0;
+        acc[log.modelName].totalCostUsd += log.totalCostUsd || 0;
         return acc;
-    }, {} as Record<string, { count: number; totalTokens: number; totalCostCents: number }>);
+    }, {} as Record<string, { count: number; totalTokens: number; totalCostUsd: number }>);
 
     return {
         logs,
@@ -173,8 +136,7 @@ export async function getUserUsage(
             totalInputTokens,
             totalOutputTokens,
             totalTokens,
-            totalCostCents,
-            totalCostUsd: totalCostCents / 100,
+            totalCostUsd, // Is already float USD
             byStage,
             byModel,
         },
@@ -202,7 +164,7 @@ export async function getProjectUsage(
         orderBy: { createdAt: 'desc' },
     });
 
-    const totalCostCents = logs.reduce((sum, log) => sum + (log.totalCostCents || 0), 0);
+    const totalCostUsd = logs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
     const totalTokens = logs.reduce((sum, log) => sum + log.totalTokens, 0);
 
     return {
@@ -210,8 +172,7 @@ export async function getProjectUsage(
         summary: {
             totalCalls: logs.length,
             totalTokens,
-            totalCostCents,
-            totalCostUsd: totalCostCents / 100,
+            totalCostUsd,
         },
     };
 }
@@ -252,17 +213,14 @@ export async function getAllUsersBillingSummary(
                 user: log.user,
                 totalCalls: 0,
                 totalTokens: 0,
-                totalCostCents: 0,
+                totalCostUsd: 0, // USD
             };
         }
         acc[log.userId].totalCalls++;
         acc[log.userId].totalTokens += log.totalTokens;
-        acc[log.userId].totalCostCents += log.totalCostCents || 0;
+        acc[log.userId].totalCostUsd += log.totalCostUsd || 0;
         return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(byUser).map((user: any) => ({
-        ...user,
-        totalCostUsd: user.totalCostCents / 100,
-    }));
+    return Object.values(byUser);
 }

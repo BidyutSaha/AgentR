@@ -47,8 +47,8 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
             metadata,
         } = params;
 
-        // Calculate cost from pricing table
-        const { inputCostCents, outputCostCents, totalCostCents } = await calculateCost(
+        // Calculate cost from pricing table (returns floats in USD)
+        const { inputCostUsd, outputCostUsd, totalCostUsd } = await calculateCost(
             modelName,
             inputTokens,
             outputTokens,
@@ -67,9 +67,9 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
                 inputTokens,
                 outputTokens,
                 totalTokens,
-                inputCostCents,
-                outputCostCents,
-                totalCostCents,
+                inputCostUsd,
+                outputCostUsd,
+                totalCostUsd,
                 durationMs: durationMs || null,
                 requestId: requestId || null,
                 status,
@@ -85,7 +85,7 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
             modelName,
             inputTokens,
             outputTokens,
-            totalCostCents,
+            totalCostUsd: totalCostUsd.toFixed(6), // Log with precision
         });
     } catch (error: any) {
         logger.error({
@@ -98,31 +98,31 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
 }
 
 /**
- * Get total cost for a user
+ * Get total cost for a user (in USD)
  */
 export async function getUserTotalCost(userId: string): Promise<number> {
     const result = await prisma.llmUsageLog.aggregate({
         where: { userId },
         _sum: {
-            totalCostCents: true,
+            totalCostUsd: true,
         },
     });
 
-    return result._sum.totalCostCents || 0;
+    return result._sum.totalCostUsd || 0;
 }
 
 /**
- * Get total cost for a project
+ * Get total cost for a project (in USD)
  */
 export async function getProjectTotalCost(projectId: string): Promise<number> {
     const result = await prisma.llmUsageLog.aggregate({
         where: { projectId },
         _sum: {
-            totalCostCents: true,
+            totalCostUsd: true,
         },
     });
 
-    return result._sum.totalCostCents || 0;
+    return result._sum.totalCostUsd || 0;
 }
 
 /**
@@ -136,7 +136,7 @@ export async function getUserUsageStats(userId: string) {
             inputTokens: true,
             outputTokens: true,
             totalTokens: true,
-            totalCostCents: true,
+            totalCostUsd: true,
         },
         _count: {
             id: true,
@@ -150,7 +150,6 @@ export async function getUserUsageStats(userId: string) {
         totalInputTokens: stat._sum.inputTokens || 0,
         totalOutputTokens: stat._sum.outputTokens || 0,
         totalTokens: stat._sum.totalTokens || 0,
-        totalCostCents: stat._sum.totalCostCents || 0,
-        totalCostUsd: ((stat._sum.totalCostCents || 0) / 100).toFixed(2),
+        totalCostUsd: (stat._sum.totalCostUsd || 0),
     }));
 }

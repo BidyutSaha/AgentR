@@ -7,9 +7,12 @@ export const createModelPricingSchema = z.object({
     modelName: z.string().min(1, 'Model name is required').max(100),
     provider: z.string().min(1, 'Provider is required').max(50).default('openai'),
     pricingTier: z.enum(['batch', 'flex', 'standard', 'priority']).default('standard'),
-    inputUsdCentsPerMillionTokens: z.number().int().min(0, 'Input price must be non-negative'),
-    outputUsdCentsPerMillionTokens: z.number().int().min(0, 'Output price must be non-negative'),
-    cachedInputUsdCentsPerMillionTokens: z.number().int().min(0).nullable().optional(),
+
+    // Pricing in USD dollars per million tokens (Float)
+    inputUsdPricePerMillionTokens: z.number().min(0, 'Input price must be non-negative'),
+    outputUsdPricePerMillionTokens: z.number().min(0, 'Output price must be non-negative'),
+    cachedInputUsdPricePerMillionTokens: z.number().min(0).nullable().optional(),
+
     description: z.string().max(500).optional(),
     notes: z.string().max(1000).nullable().optional(),
     effectiveFrom: z.string().datetime().optional(), // ISO 8601 datetime string
@@ -21,9 +24,9 @@ export type CreateModelPricingRequest = z.infer<typeof createModelPricingSchema>
  * Schema for updating an existing LLM model pricing entry
  */
 export const updateModelPricingSchema = z.object({
-    inputUsdCentsPerMillionTokens: z.number().int().min(0).optional(),
-    outputUsdCentsPerMillionTokens: z.number().int().min(0).optional(),
-    cachedInputUsdCentsPerMillionTokens: z.number().int().min(0).nullable().optional(),
+    inputUsdPricePerMillionTokens: z.number().min(0).optional(),
+    outputUsdPricePerMillionTokens: z.number().min(0).optional(),
+    cachedInputUsdPricePerMillionTokens: z.number().min(0).nullable().optional(),
     description: z.string().max(500).optional(),
     notes: z.string().max(1000).nullable().optional(),
     isActive: z.boolean().optional(),
@@ -56,9 +59,9 @@ export interface ModelPricingResponse {
     modelName: string;
     provider: string;
     pricingTier: string;
-    inputUsdCentsPerMillionTokens: number;
-    outputUsdCentsPerMillionTokens: number;
-    cachedInputUsdCentsPerMillionTokens: number | null;
+    inputUsdPricePerMillionTokens: number;
+    outputUsdPricePerMillionTokens: number;
+    cachedInputUsdPricePerMillionTokens: number | null;
     isActive: boolean;
     isLatest: boolean;
     description: string | null;
