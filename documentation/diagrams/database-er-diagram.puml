@@ -4,7 +4,7 @@
 ' Literature Review System - Database ER Diagram
 ' ============================================================================
 ' This diagram shows all database tables and their relationships
-' Last Updated: 2025-12-31
+' Last Updated: 2026-01-01
 ' ============================================================================
 
 ' Entity definitions
@@ -95,6 +95,25 @@ entity "candidate_papers" as papers {
   * updated_at : TIMESTAMP
 }
 
+entity "llm_model_pricing" as model_pricing {
+  * id : UUID <<PK>>
+  --
+  * model_name : VARCHAR(100)
+  * provider : VARCHAR(50)
+  * pricing_tier : VARCHAR(50)
+  * input_usd_cents_per_million_tokens : INTEGER
+  * output_usd_cents_per_million_tokens : INTEGER
+  cached_input_usd_cents_per_million_tokens : INTEGER
+  * is_active : BOOLEAN
+  * is_latest : BOOLEAN
+  description : TEXT
+  notes : TEXT
+  * effective_from : TIMESTAMP
+  effective_to : TIMESTAMP
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
 entity "llm_usage_logs" as llm_logs {
   * id : UUID <<PK>>
   --
@@ -174,6 +193,17 @@ note right of papers
   - C1/C2 analysis results
   - Research gap identification
   - Cascade delete with project
+end note
+
+note right of model_pricing
+  LLM Model Pricing Management
+  - Stores pricing for different models
+  - Multiple pricing tiers (batch/flex/standard/priority)
+  - Supports cached input pricing
+  - Supports versioning (effective dates)
+  - isLatest flag for current pricing per tier
+  - Prices in cents per million tokens
+  - Admin-only management
 end note
 
 note right of llm_logs

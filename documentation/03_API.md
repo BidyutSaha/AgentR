@@ -46,6 +46,12 @@ Complete API reference for the Literature Review System.
 24. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage
 25. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (admin)
 
+### Model Pricing Management (Admin Only)
+27. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
+28. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
+29. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
+30. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
+
 ### Health Check (Public)
 26. [GET /v1/health](#get-v1health) - Health check
 

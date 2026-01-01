@@ -6,6 +6,7 @@ import userProjectRoutes from './userProject.routes';
 import candidatePaperRoutes from './candidatePaper.routes';
 import papersRoutes from './papers.routes';
 import llmUsageRoutes from './llmUsage.routes';
+import modelPricingRoutes from './modelPricing.routes';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/v1/user-projects', candidatePaperRoutes); // Nested routes for pape
 router.use('/v1/papers', papersRoutes); // Direct routes for papers
 router.use('/v1/stages', stagesRoutes);
 router.use('/v1/llm-usage', llmUsageRoutes); // LLM usage tracking
+router.use('/v1/admin/model-pricing', modelPricingRoutes); // Admin-only model pricing management
 
 export default router;

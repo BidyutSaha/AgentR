@@ -7,6 +7,12 @@ export interface ApiSuccessResponse<T = any> {
     meta: {
         requestId: string;
         timestamp?: string;
+        pagination?: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
     };
 }
 
@@ -60,4 +66,5 @@ export enum ErrorCode {
     UPSTREAM_ERROR = 'UPSTREAM_ERROR',
     LLM_ERROR = 'LLM_ERROR',
     INTERNAL_ERROR = 'INTERNAL_ERROR',
+    NOT_FOUND = 'NOT_FOUND',
 }
