@@ -4,7 +4,7 @@
 ' Literature Review System - Database ER Diagram
 ' ============================================================================
 ' This diagram shows all database tables and their relationships
-' Last Updated: 2026-01-01
+' Last Updated: 2026-01-03
 ' ============================================================================
 
 ' Entity definitions
@@ -18,6 +18,7 @@ entity "users" as users {
   last_name : VARCHAR(100)
   * is_verified : BOOLEAN
   * is_active : BOOLEAN
+  * ai_credits_balance : FLOAT
   * created_at : TIMESTAMP
   * updated_at : TIMESTAMP
   last_login : TIMESTAMP
@@ -137,6 +138,44 @@ entity "llm_usage_logs" as llm_logs {
   * created_at : TIMESTAMP
 }
 
+entity "credits_multiplier_history" as multiplier_history {
+  * id : UUID <<PK>>
+  --
+  * usd_to_credits_multiplier : FLOAT
+  description : TEXT
+  updated_by : VARCHAR(255)
+  * effective_from : TIMESTAMP
+  effective_to : TIMESTAMP
+  * is_active : BOOLEAN
+  * created_at : TIMESTAMP
+}
+
+entity "default_credits_history" as default_history {
+  * id : UUID <<PK>>
+  --
+  * default_credits : FLOAT
+  description : TEXT
+  updated_by : VARCHAR(255)
+  * effective_from : TIMESTAMP
+  effective_to : TIMESTAMP
+  * is_active : BOOLEAN
+  * created_at : TIMESTAMP
+}
+
+entity "user_credits_transactions" as transactions {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  admin_id : VARCHAR(255)
+  * transaction_type : VARCHAR(50)
+  * amount : FLOAT
+  * balance_before : FLOAT
+  * balance_after : FLOAT
+  reason : TEXT
+  description : TEXT
+  * created_at : TIMESTAMP
+}
+
 ' Relationships
 
 users ||--o{ email_tokens : "has"
@@ -144,6 +183,7 @@ users ||--o{ password_tokens : "has"
 users ||--o{ refresh_tokens : "has"
 users ||--o{ projects : "owns"
 users ||--o{ llm_logs : "generates"
+users ||--o{ transactions : "has"
 projects ||--o{ papers : "contains"
 projects ||--o{ llm_logs : "tracks"
 papers ||--o{ llm_logs : "tracks"
@@ -155,6 +195,8 @@ note right of users
   - Stores user credentials
   - Email verification status
   - Account active status
+  - **AI Credits balance** (NEW)
+  - Deducted after each LLM usage
 end note
 
 note right of email_tokens
@@ -209,11 +251,39 @@ end note
 note right of llm_logs
   LLM API usage tracking
   - Tracks every OpenAI API call
-  - Records tokens and costs
+  - Records tokens and costs (USD)
   - Performance metrics (duration)
   - Used for billing and analytics
+  - **Triggers credit deduction** (NEW)
   - Cascade delete with user
   - SET NULL on project/paper delete
+end note
+
+note right of multiplier_history
+  **USD to Credits Multiplier History** (NEW)
+  - Tracks conversion rate changes
+  - 1 USD = X Credits
+  - Admin can update (creates new entry)
+  - Query latest with isActive = true
+  - Complete audit trail
+end note
+
+note right of default_history
+  **Default Credits History** (NEW)
+  - Tracks default signup credits changes
+  - Admin can update (creates new entry)
+  - Query latest with isActive = true
+  - Used during user registration
+end note
+
+note right of transactions
+  **User Credits Transactions** (NEW)
+  - Tracks all manual credit changes
+  - Types: SIGNUP_DEFAULT, ADMIN_RECHARGE, ADMIN_DEDUCT
+  - Records balance before/after
+  - Admin actions tracked
+  - Complete audit trail
+  - LLM deductions NOT here (in llm_logs)
 end note
 
 @enduml

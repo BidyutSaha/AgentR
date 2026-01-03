@@ -41,19 +41,40 @@ Complete API reference for the Literature Review System.
 21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
 22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
-### LLM Usage Tracking (Protected)
-23. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage
-24. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage
-25. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (admin)
+### LLM Usage Tracking - USD (Protected)
+23. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
+24. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
+25. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
+
+### LLM Usage Tracking - AI Credits (Protected)
+26. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
+27. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
+28. [GET /v1/llm-usage/admin/all-users-credits](#get-v1llm-usageadminall-users-credits) - Get all users billing (Credits, admin)
 
 ### Model Pricing Management (Admin Only)
-27. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
-28. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
-29. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
-30. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
+29. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
+30. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
+31. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
+32. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
 
 ### Health Check (Public)
-26. [GET /v1/health](#get-v1health) - Health check
+33. [GET /v1/health](#get-v1health) - Health check
+
+### System Configuration (Admin Only)
+34. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
+35. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
+36. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
+37. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
+38. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
+
+### Credits Management (Admin Only)
+39. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
+40. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
+41. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
+42. [GET /v1/admin/credits/user/:userId/transactions](#get-v1admincreditsuseruseridtransactions) - Get user transaction history
+
+### Credits Management (User)
+43. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
 
 ---
 
@@ -371,10 +392,562 @@ GET /v1/auth/verify-email?token=abc123xyz789
 
 #### Business Logic Notes
 
+    // Token is marked as used with timestamp
+    // - User's isVerified flag is set to true
+    
+    // - Token is single-use only
+    // - Token expires after 24 hours
+    // - User's `isVerified` flag is set to true
+    // - Token is marked as used with timestamp
+    
+    // The previous content ended at line 379. I will rewrite the Business Logic Notes for verify-email correctly and then append the new sections.
+
 - Token is single-use only
 - Token expires after 24 hours
 - User's `isVerified` flag is set to true
 - Token is marked as used with timestamp
+
+---
+
+### POST /v1/auth/resend-verification
+
+**Description**: Resend the email verification link to the user.
+
+**Authentication**: None (Public)  
+**Roles**: Public
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  email: string;           // User email address
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Verification email sent"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Invalid email format |
+| 400 | `RESEND_FAILED` | Processing error | Email already active |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+**Sample Error Response**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RESEND_FAILED",
+    "message": "Email is already verified"
+  }
+}
+```
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple email trigger)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (10 requests per hour)
+- If email is already verified, returns error
+- If email doesn't exist, returns success message to prevent user enumeration
+- Invalidates any previous unused verification tokens
+
+---
+
+### POST /v1/auth/forgot-password
+
+**Description**: Request a password reset link to be sent to email.
+
+**Authentication**: None (Public)  
+**Roles**: Public
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  email: string;           // User email address
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password reset email sent"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Invalid email format |
+| 400 | `FORGOT_PASSWORD_FAILED` | User not found | User with this email does not exist |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple email trigger)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (3 requests per hour)
+- If email doesn't exist, returns success message to prevent user enumeration
+- Invalidates any previous unused reset tokens
+- Token expires in 1 hour
+
+---
+
+### POST /v1/auth/reset-password
+
+**Description**: Reset user password using a valid reset token.
+
+**Authentication**: None (Public)  
+**Roles**: Public
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  token: string;           // Reset token from email
+  newPassword: string;     // New password (min 8 chars, strong)
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "abc123xyz789...",
+  "newPassword": "NewSecurePass123!"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password reset successfully"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Password too weak |
+| 400 | `RESET_PASSWORD_FAILED` | Reset failed | Invalid or expired token |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple update)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (3 requests per hour)
+- Token is single-use
+- Revokes all existing user sessions (refresh tokens) upon success for security
+
+---
+
+### POST /v1/auth/refresh
+
+**Description**: Refresh access token using a valid refresh token.
+
+**Authentication**: None (Public - requires refresh token in body)  
+**Roles**: Public
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  refreshToken: string;    // Valid refresh token
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresIn: string;
+      refreshTokenExpiresIn: string;
+    };
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "accessTokenExpiresIn": "15m",
+      "refreshTokenExpiresIn": "7d"
+    },
+    "message": "Tokens refreshed successfully"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Missing token |
+| 401 | `REFRESH_FAILED` | Refresh failed | Invalid/Expired token |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (token exchange)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (5 requests per 15 mins)
+- Replaces the old refresh token with a new one (Rotation)
+- Returns new short-lived access token
+
+---
+
+### POST /v1/auth/change-password
+
+**Description**: Change password for a logged-in user.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  currentPassword: string; // Current password
+  newPassword: string;     // New password
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/change-password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewPassword123!"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password changed successfully. Please log in again."
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Weak password |
+| 400 | `CHANGE_PASSWORD_FAILED` | Change failed | Wrong current password |
+| 401 | `UNAUTHORIZED` | Authentication failed | Missing/invalid token |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple update)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (5 requests per 15 mins)
+- Revokes all existing sessions (refresh tokens) for security
+
+---
+
+### POST /v1/auth/logout
+
+**Description**: Logout user by revoking the refresh token.
+
+**Authentication**: None (Public - requires refresh token)  
+**Roles**: Public
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  refreshToken: string;    // Token to revoke
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Logged out successfully"
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 400 | `VALIDATION_ERROR` | Invalid input | Missing token |
+| 200 | `OK` | Logout success | Even if token invalid (idempotent) |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple revocation)
+
+---
+
+#### Business Logic Notes
+
+- Rate limited (5 requests per 15 mins)
+- Always returns 200 OK even if token is invalid (security/ux)
+- Permanently revokes the refresh token
 
 ---
 
@@ -589,6 +1162,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Headers**:
 - `Authorization: Bearer <accessToken>` (required)
 
+**Query Parameters**:
+- `startDate` (string, optional) - Filter start date (ISO 8601, e.g. `2024-01-01`)
+- `endDate` (string, optional) - Filter end date (ISO 8601, e.g. `2024-01-31`)
+
 ---
 
 #### Output Structure
@@ -598,15 +1175,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   success: true;
   data: {
-    projects: Array<{
-      id: string;
-      userId: string;
+    totalCost: number;     // Total USD cost consumed by user in period
+    projectCosts: Array<{
+      projectId: string;
       projectName: string;
-      userIdea: string;
-      createdAt: string;
-      updatedAt: string;
+      totalCost: number;   // Cost for this project in period
     }>;
-    count: number;
+    paperCosts: Array<{
+      paperId: string;
+      paperTitle: string;
+      projectId: string;
+      totalCost: number;   // Cost for this paper in period
+    }>;
   };
 }
 ```
@@ -1746,7 +2326,7 @@ These diagrams show:
 
 ### GET /v1/llm-usage/my-usage
 
-**Description**: Get current user's LLM usage statistics and costs for billing purposes.
+**Description**: Get current user's LLM usage statistics and costs **in USD** for billing purposes.
 
 **Authentication**: Required (JWT)  
 **Roles**: Authenticated User
@@ -1771,25 +2351,18 @@ These diagrams show:
 {
   success: true;
   data: {
-    logs: Array<LlmUsageLog>;
-    summary: {
-      totalCalls: number;
-      totalInputTokens: number;
-      totalOutputTokens: number;
-      totalTokens: number;
+    totalCostUsd: number;     // Total USD cost
+    projectCosts: Array<{
+      projectId: string;
+      projectName: string;
       totalCostUsd: number;
-      byStage: Record<string, {
-        count: number;
-        totalTokens: number;
-        totalCostUsd: number;
-      }>;
-      byModel: Record<string, {
-        count: number;
-        totalTokens: number;
-        totalCostUsd: number;
-      }>;
-    };
-
+    }>;
+    paperCosts: Array<{
+      paperId: string;
+      paperTitle: string;
+      projectId: string;
+      totalCostUsd: number;
+    }>;
   };
 }
 ```
@@ -1800,7 +2373,7 @@ These diagrams show:
 
 ```bash
 GET /v1/llm-usage/my-usage?startDate=2025-01-01&endDate=2025-01-31
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <token>
 ```
 
 ---
@@ -1812,49 +2385,26 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   "success": true,
   "data": {
-    "summary": {
-      "totalCalls": 150,
-      "totalInputTokens": 30000,
-      "totalOutputTokens": 15000,
-      "totalTokens": 45000,
-      "totalCostUsd": 1.25,
-      "byStage": {
-        "intent": {
-          "count": 50,
-          "totalTokens": 15000,
-          "totalCostUsd": 0.45
-        },
-        "score": {
-          "count": 100,
-          "totalTokens": 30000,
-          "totalCostUsd": 0.80
-        }
-      },
-      "byModel": {
-        "gpt-4o-mini": {
-          "count": 150,
-          "totalTokens": 45000,
-          "totalCostUsd": 1.25
-        }
-      }
-    },
-    "logs": [
+    "totalCostUsd": 0.45,
+    "projectCosts": [
       {
-        "id": "log_123",
-        "stage": "intent",
-        "modelName": "gpt-4o-mini",
-        "inputTokens": 200,
-        "outputTokens": 100,
-        "totalTokens": 300,
-        "totalCostUsd": 0.01,
-        "durationMs": 1500,
-
-        "createdAt": "2025-01-15T10:30:00.000Z"
+        "projectId": "proj_123",
+        "projectName": "My Research",
+        "totalCostUsd": 0.30
+      }
+    ],
+    "paperCosts": [
+      {
+        "paperId": "paper_xyz",
+        "paperTitle": "Attention is All You Need",
+        "projectId": "proj_123",
+        "totalCostUsd": 0.15
       }
     ]
   }
 }
 ```
+
 
 ---
 
@@ -1875,18 +2425,21 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 #### Business Logic Notes
 
-- Returns all LLM usage for the authenticated user
-- Date range is optional - without dates, returns all usage
-- Costs are calculated based on current OpenAI pricing
-- Breakdown by stage shows usage per pipeline stage (intent, queries, score)
-- Breakdown by model shows usage per AI model
+- **Date Filtering**:
+  - If `startDate` is missing: No lower bound (includes usage from the beginning).
+  - If `endDate` is missing: No upper bound (includes usage until now).
+  - If both are missing: Returns lifetime total usage.
+- Aggregates all historic usage for the user
+- `totalCost` includes usage that may not be linked to any project (global usage)
+- Returns all projects and papers, even if cost is 0
+- Deleted projects/papers are excluded from the specific breakdown lists but included in `totalCost` if usage logs persist
 - Useful for user billing dashboards
 
 ---
 
 ### GET /v1/llm-usage/project/:projectId
 
-**Description**: Get LLM usage statistics for a specific project.
+**Description**: Get LLM usage statistics for a specific project **in USD**.
 
 **Authentication**: Required (JWT)  
 **Roles**: Authenticated User (must own the project)
@@ -1918,7 +2471,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     summary: {
       totalCalls: number;
       totalTokens: number;
-      totalCostUsd: number;
+      totalCostUsd: number;     // Total USD cost
     };
   };
 }
@@ -1976,12 +2529,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - Returns LLM usage for a specific project only
 - Useful for tracking costs per research project
 - Can help identify which projects are most expensive
+- **USD only** - for Credits, use `/v1/llm-usage/project-credits/:projectId`
 
 ---
 
 ### GET /v1/llm-usage/admin/all-users
 
-**Description**: Get billing summary for all users (admin only).
+**Description**: Get billing summary for all users **in USD** (admin only).
 
 **Authentication**: Required (JWT)  
 **Roles**: Admin
@@ -2015,10 +2569,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       };
       totalCalls: number;
       totalTokens: number;
-      totalCostUsd: number;
+      totalCostUsd: number;     // Total USD cost for this user
     }>;
     totalUsers: number;
-    grandTotalCostUsd: number;
+    grandTotalCostUsd: number;     // Sum of all users' USD costs
   };
 }
 ```
@@ -2052,6 +2606,17 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         "totalCalls": 200,
         "totalTokens": 60000,
         "totalCostUsd": 1.80
+      },
+      {
+        "user": {
+          "id": "user_456",
+          "email": "jane@example.com",
+          "firstName": "Jane",
+          "lastName": "Smith"
+        },
+        "totalCalls": 125,
+        "totalTokens": 37500,
+        "totalCostUsd": 1.25
       }
     ],
     "totalUsers": 2,
@@ -2085,6 +2650,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - Useful for platform-wide cost monitoring
 - Can be used to generate invoices or billing reports
 - Helps identify high-usage users
+- **USD only** - for Credits, use `/v1/llm-usage/admin/all-users-credits`
 
 ---
 
@@ -2158,6 +2724,388 @@ None - If server is down, no response will be received.
 #### Diagrams
 
 **Diagrams**: Not required (simple health check)
+
+---
+
+## System Configuration (Admin Only)
+
+### GET /v1/admin/system-config
+
+**Description**: Get current system configuration including the active multiplier and default credits.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Query Parameters**: None  
+**Path Parameters**: None  
+**Request Body**: None
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    usdToCreditsMultiplier: number;     // Active 1 USD = X Credits
+    defaultCreditsForNewUsers: number;  // Active default signup credits
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/admin/system-config
+Authorization: Bearer <admin-token>
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "usdToCreditsMultiplier": 100.0,
+    "defaultCreditsForNewUsers": 1000.0
+  }
+}
+```
+
+---
+
+### POST /v1/admin/system-config/credits-multiplier
+
+**Description**: Update the global USD to AI Credits multiplier (creates new history entry).
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  multiplier: number;      // Required: Must be > 0
+  description?: string;    // Optional: Reason/Description
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    id: string;
+    usdToCreditsMultiplier: number;
+    description: string;
+    updatedBy: string;
+    effectiveFrom: string;
+    isActive: true;
+  };
+  message: string;
+}
+```
+
+---
+
+### GET /v1/admin/system-config/credits-multiplier/history
+
+**Description**: Get history of all multiplier changes.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    current: number;
+    history: Array<{
+      id: string;
+      usdToCreditsMultiplier: number;
+      effectiveFrom: string;
+      effectiveTo: string | null;
+      isActive: boolean;
+      updatedBy: string;
+      description: string;
+    }>;
+  };
+}
+```
+
+---
+
+### POST /v1/admin/system-config/default-credits
+
+**Description**: Update default credits for new users (creates new history entry).
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  credits: number;         // Required: Must be >= 0
+  description?: string;    // Optional
+}
+```
+
+---
+
+### GET /v1/admin/system-config/default-credits/history
+
+**Description**: Get history of default credits changes.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+## Credits Management (Admin Only)
+
+### POST /v1/admin/credits/recharge
+
+**Description**: Recharge specific user's credit balance.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  userId: string;          // Required
+  amount: number;          // Required: Positive number
+  reason?: string;         // Optional note
+}
+```
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    aiCreditsBalance: number;
+    createdAt: string;
+  };
+  message: string;
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/admin/credits/recharge
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "userId": "user_123",
+  "amount": 500,
+  "reason": "Customer loyalty bonus"
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user_123",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "aiCreditsBalance": 1500.0,
+    "createdAt": "2026-01-01T10:00:00.000Z"
+  },
+  "message": "Recharged 500 credits successfully"
+}
+```
+
+---
+
+### POST /v1/admin/credits/deduct
+
+**Description**: Deduct credits from specific user's balance.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  userId: string;
+  amount: number;          // Positive number (will be deducted)
+  reason?: string;
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/admin/credits/deduct
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "userId": "user_123",
+  "amount": 100,
+  "reason": "Refund reversed"
+}
+```
+
+---
+
+### GET /v1/admin/credits/user/:userId
+
+**Description**: Get a specific user's current credit balance.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+### GET /v1/admin/credits/user/:userId/transactions
+
+**Description**: Get full transaction history for a user.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: Array<{
+    id: string;
+    transactionType: 'SIGNUP_DEFAULT' | 'ADMIN_RECHARGE' | 'ADMIN_DEDUCT' | 'ADMIN_ADJUSTMENT';
+    amount: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    reason: string | null;
+    description: string | null;
+    adminId: string | null;
+    createdAt: string;
+  }>;
+}
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "tx_2",
+      "transactionType": "ADMIN_RECHARGE",
+      "amount": 500,
+      "balanceBefore": 1000,
+      "balanceAfter": 1500,
+      "reason": "Bonus",
+      "description": "Admin recharge: +500 credits",
+      "adminId": "admin_1",
+      "createdAt": "2026-01-03T14:00:00.000Z"
+    },
+    {
+      "id": "tx_1",
+      "transactionType": "SIGNUP_DEFAULT",
+      "amount": 1000,
+      "balanceBefore": 0,
+      "balanceAfter": 1000,
+      "reason": "Default credits on signup",
+      "description": "New user signup bonus: 1000 credits",
+      "adminId": null,
+      "createdAt": "2026-01-01T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Credits Management (User)
+
+### GET /v1/credits/my-balance
+
+**Description**: Get current logged-in user's credit balance.
+
+**Authentication**: Required (JWT)  
+**Roles**: User
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    balance: number;
+  };
+}
+```
 
 ---
 

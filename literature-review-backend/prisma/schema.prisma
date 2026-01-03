@@ -22,6 +22,7 @@ model User {
   lastName                String?   @map("last_name")
   isVerified              Boolean   @default(false) @map("is_verified")
   isActive                Boolean   @default(true) @map("is_active")
+  aiCreditsBalance        Float     @default(0.0) @map("ai_credits_balance") // Current AI Credits balance
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
   lastLogin               DateTime? @map("last_login")
@@ -32,6 +33,7 @@ model User {
   refreshTokens           RefreshToken[]
   projects                UserProject[]
   llmUsageLogs            LlmUsageLog[]
+  creditsTransactions     UserCreditsTransaction[] // Admin credit adjustments
 
   @@map("users")
 }
@@ -278,5 +280,94 @@ model LlmUsageLog {
   @@index([createdAt]) // Time-based queries for billing periods
   
   @@map("llm_usage_logs")
+}
+
+// ============================================================================
+// CREDITS MULTIPLIER HISTORY (for global USD to Credits conversion)
+// ============================================================================
+
+model CreditsMultiplierHistory {
+  id        String   @id @default(uuid())
+  
+  // USD to AI Credits Conversion Rate
+  usdToCreditsMultiplier Float @map("usd_to_credits_multiplier") // 1 USD = X Credits
+  
+  // Metadata
+  description String?  @db.Text // Description of this rate
+  updatedBy   String?  @map("updated_by") // Admin user ID who set this rate
+  
+  // Validity period
+  effectiveFrom DateTime @default(now()) @map("effective_from") // When this rate becomes active
+  effectiveTo   DateTime? @map("effective_to") // When this rate expires (null = current)
+  
+  // Status
+  isActive Boolean @default(true) @map("is_active") // Is this the current active rate?
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([isActive, effectiveFrom])
+  @@map("credits_multiplier_history")
+}
+
+// ============================================================================
+// DEFAULT CREDITS HISTORY (for new user signup credits)
+// ============================================================================
+
+model DefaultCreditsHistory {
+  id        String   @id @default(uuid())
+  
+  // Default Credits for New Users
+  defaultCredits Float @map("default_credits") // Credits given on signup
+  
+  // Metadata
+  description String?  @db.Text // Description of this credit amount
+  updatedBy   String?  @map("updated_by") // Admin user ID who set this amount
+  
+  // Validity period
+  effectiveFrom DateTime @default(now()) @map("effective_from") // When this amount becomes active
+  effectiveTo   DateTime? @map("effective_to") // When this amount expires (null = current)
+  
+  // Status
+  isActive Boolean @default(true) @map("is_active") // Is this the current active amount?
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([isActive, effectiveFrom])
+  @@map("default_credits_history")
+}
+
+// ============================================================================
+// USER CREDITS TRANSACTIONS (for all credit balance changes)
+// ============================================================================
+
+model UserCreditsTransaction {
+  id        String   @id @default(uuid())
+  
+  // User and Admin
+  userId    String   @map("user_id") // User receiving/losing credits
+  adminId   String?  @map("admin_id") // Admin who performed the action (null for system actions like signup)
+  
+  // Transaction Details
+  transactionType String @map("transaction_type") // 'SIGNUP_DEFAULT' | 'ADMIN_RECHARGE' | 'ADMIN_DEDUCT' | 'ADMIN_ADJUSTMENT'
+  amount          Float  // Positive for additions, negative for deductions
+  balanceBefore   Float  @map("balance_before") // Balance before transaction
+  balanceAfter    Float  @map("balance_after") // Balance after transaction
+  
+  // Metadata
+  reason      String?  @db.Text // Reason for this transaction
+  description String?  @db.Text // Additional notes
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@index([adminId])
+  @@index([transactionType])
+  @@map("user_credits_transactions")
 }
 

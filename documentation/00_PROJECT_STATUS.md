@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-01-03
 
 ---
 
@@ -115,6 +115,18 @@ Complete production-ready codebase cleanup and bring project into full complianc
 
 ## Recent Changes
 
+### 2026-01-03
+- **✅ Updated API Documentation**
+  - Added missing authentication endpoints documentation to `03_API.md`
+  - Documented `resend-verification`, `forgot-password`, `reset-password`, `refresh`, `change-password`, and `logout`
+  - Ensured documentation matches existing implementation in `auth.controller.ts`
+- **✅ New LLM Cost Summary API**
+  - Implemented `GET /v1/llm-usage/cost-summary`
+  - Provides total cost, project-wise breakdown, and paper-wise breakdown
+  - Updated service logic to aggregate costs from usage logs
+  - Updated API documentation
+
+
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**
   - Switched database schema from Integer Cents to Float USD for accuracy
@@ -179,7 +191,7 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ### Code
 - **Backend**: ~15,000 lines of TypeScript
 - **Test Coverage**: ~40% (Target: 70%)
-- **API Endpoints**: 12 (5 auth, 5 projects, 2 LLM stages)
+- **API Endpoints**: 25 (9 auth, 5 projects, 3 LLM stages, 3 usage, 4 pricing, 1 health)
 
 ### Documentation
 - **Current**: 48 files (scattered)

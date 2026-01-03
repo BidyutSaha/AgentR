@@ -62,24 +62,53 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // Get default credits from system config (uses history table)
+    const defaultCredits = await prisma.defaultCreditsHistory.findFirst({
+        where: { isActive: true },
+        select: { defaultCredits: true },
+        orderBy: { effectiveFrom: 'desc' },
+    });
+    const creditsToAssign = defaultCredits?.defaultCredits || 1000.0;
+
     // Create user with verification token
     const verificationToken = generateToken();
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const user = await prisma.user.create({
-        data: {
-            email: email.toLowerCase(),
-            passwordHash,
-            firstName,
-            lastName,
-            isVerified: false,
-            emailVerificationTokens: {
-                create: {
-                    token: verificationToken,
-                    expiresAt: verificationExpiry,
+    // Use transaction to create user and credit transaction record
+    const user = await prisma.$transaction(async (tx) => {
+        // 1. Create user
+        const newUser = await tx.user.create({
+            data: {
+                email: email.toLowerCase(),
+                passwordHash,
+                firstName,
+                lastName,
+                isVerified: false,
+                aiCreditsBalance: creditsToAssign, // Assign default credits
+                emailVerificationTokens: {
+                    create: {
+                        token: verificationToken,
+                        expiresAt: verificationExpiry,
+                    },
                 },
             },
-        },
+        });
+
+        // 2. Create transaction record for signup default credits
+        await tx.userCreditsTransaction.create({
+            data: {
+                userId: newUser.id,
+                adminId: null, // System action, not admin
+                transactionType: 'SIGNUP_DEFAULT',
+                amount: creditsToAssign,
+                balanceBefore: 0,
+                balanceAfter: creditsToAssign,
+                reason: 'Default credits on signup',
+                description: `New user signup bonus: ${creditsToAssign} credits`,
+            },
+        });
+
+        return newUser;
     });
 
     // Send verification email
@@ -89,7 +118,7 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
         verificationToken
     );
 
-    logger.info(`User registered: ${user.email}`);
+    logger.info(`User registered: ${user.email} with ${creditsToAssign} AI Credits`);
 
     return {
         user: toSafeUser(user),
@@ -266,8 +295,7 @@ export async function forgotPassword(email: string): Promise<{ message: string }
     });
 
     if (!user) {
-        // Don't reveal if user exists
-        return { message: 'If the email exists, a password reset link has been sent' };
+        throw new Error('User with this email does not exist');
     }
 
     // Invalidate old tokens

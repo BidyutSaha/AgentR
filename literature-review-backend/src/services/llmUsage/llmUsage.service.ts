@@ -26,7 +26,7 @@ export interface LogLlmUsageInput {
 }
 
 /**
- * Log an LLM API call for billing tracking
+ * Log an LLM API call for billing tracking and deduct credits
  */
 export async function logLlmUsage(data: LogLlmUsageInput) {
     try {
@@ -62,6 +62,9 @@ export async function logLlmUsage(data: LogLlmUsageInput) {
             },
         });
 
+        // Deduct AI Credits from user balance
+        await deductCreditsFromUser(data.userId, costs.totalCostUsd);
+
         logger.info(`LLM usage logged: ${log.id} - ${data.stage} - ${totalTokens} tokens - $${costs.totalCostUsd.toFixed(6)}`);
 
         return log;
@@ -73,78 +76,243 @@ export async function logLlmUsage(data: LogLlmUsageInput) {
 }
 
 /**
+ * Deduct AI Credits from user's balance based on USD cost
+ */
+async function deductCreditsFromUser(userId: string, costUsd: number) {
+    try {
+        // Get current USD to Credits multiplier from history table
+        const multiplierRecord = await prisma.creditsMultiplierHistory.findFirst({
+            where: { isActive: true },
+            select: { usdToCreditsMultiplier: true },
+            orderBy: { effectiveFrom: 'desc' },
+        });
+        const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0;
+
+        // Calculate credits to deduct
+        const creditsToDeduct = costUsd * multiplier;
+
+        // Deduct from user balance
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                aiCreditsBalance: {
+                    decrement: creditsToDeduct,
+                },
+            },
+            select: {
+                email: true,
+                aiCreditsBalance: true,
+            },
+        });
+
+        logger.info(`Deducted ${creditsToDeduct.toFixed(2)} credits from ${updatedUser.email}. New balance: ${updatedUser.aiCreditsBalance.toFixed(2)}`);
+    } catch (error) {
+        logger.error('Error deducting credits:', error);
+        // Don't throw - we don't want credit deduction to break the main flow
+    }
+}
+
+/**
  * Get user's LLM usage for a specific time period
+ */
+/**
+ * Get user's LLM usage cost summary in USD (Total, Project-wise, Paper-wise)
+ * 
+ * Date Filtering Rules:
+ * - startDate missing: No lower bound (includes usage from the beginning)
+ * - endDate missing: No upper bound (includes usage until now)
+ * - Both missing: Returns lifetime total usage
  */
 export async function getUserUsage(
     userId: string,
     startDate?: Date,
     endDate?: Date
 ) {
-    const where: any = { userId };
+    // Construct date filter
+    const dateFilter: any = {};
+    if (startDate) dateFilter.gte = startDate;
+    if (endDate) dateFilter.lte = endDate;
 
-    if (startDate || endDate) {
-        where.createdAt = {};
-        if (startDate) where.createdAt.gte = startDate;
-        if (endDate) where.createdAt.lte = endDate;
+    const hasDateFilter = Object.keys(dateFilter).length > 0;
+
+    // 1. Total Cost (All usage for this user)
+    const totalUsageWhere: any = { userId };
+    if (hasDateFilter) {
+        totalUsageWhere.createdAt = dateFilter;
     }
 
-    const logs = await prisma.llmUsageLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
+    const totalCostAgg = await prisma.llmUsageLog.aggregate({
+        where: totalUsageWhere,
+        _sum: { totalCostUsd: true },
+    });
+    const totalCostUsd = totalCostAgg._sum.totalCostUsd || 0;
+
+    // 2. Project Costs (For existing projects)
+    const projects = await prisma.userProject.findMany({
+        where: { userId },
+        select: {
+            id: true,
+            projectName: true,
+            llmUsageLogs: {
+                where: hasDateFilter ? { createdAt: dateFilter } : undefined,
+                select: { totalCostUsd: true },
+            },
+        },
     });
 
-    // Calculate totals
-    const totalInputTokens = logs.reduce((sum, log) => sum + log.inputTokens, 0);
-    const totalOutputTokens = logs.reduce((sum, log) => sum + log.outputTokens, 0);
-    const totalTokens = logs.reduce((sum, log) => sum + log.totalTokens, 0);
-    const totalCostUsd = logs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
-
-    // Group by stage
-    const byStage = logs.reduce((acc, log) => {
-        if (!acc[log.stage]) {
-            acc[log.stage] = {
-                count: 0,
-                totalTokens: 0,
-                totalCostUsd: 0,
+    const projectCosts = projects
+        .map((p) => {
+            const costUsd = p.llmUsageLogs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
+            return {
+                projectId: p.id,
+                projectName: p.projectName,
+                totalCostUsd: costUsd,
             };
-        }
-        acc[log.stage].count++;
-        acc[log.stage].totalTokens += log.totalTokens;
-        acc[log.stage].totalCostUsd += log.totalCostUsd || 0;
-        return acc;
-    }, {} as Record<string, { count: number; totalTokens: number; totalCostUsd: number }>);
+        })
+        .sort((a, b) => b.totalCostUsd - a.totalCostUsd);
 
-    // Group by model
-    const byModel = logs.reduce((acc, log) => {
-        if (!acc[log.modelName]) {
-            acc[log.modelName] = {
-                count: 0,
-                totalTokens: 0,
-                totalCostUsd: 0,
+    // 3. Paper Costs (For existing papers)
+    const papers = await prisma.candidatePaper.findMany({
+        where: {
+            project: { userId },
+        },
+        select: {
+            id: true,
+            paperTitle: true,
+            projectId: true,
+            llmUsageLogs: {
+                where: hasDateFilter ? { createdAt: dateFilter } : undefined,
+                select: { totalCostUsd: true },
+            },
+        },
+    });
+
+    const paperCosts = papers
+        .map((p) => {
+            const costUsd = p.llmUsageLogs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
+            return {
+                paperId: p.id,
+                paperTitle: p.paperTitle,
+                projectId: p.projectId,
+                totalCostUsd: costUsd,
             };
-        }
-        acc[log.modelName].count++;
-        acc[log.modelName].totalTokens += log.totalTokens;
-        acc[log.modelName].totalCostUsd += log.totalCostUsd || 0;
-        return acc;
-    }, {} as Record<string, { count: number; totalTokens: number; totalCostUsd: number }>);
+        })
+        .sort((a, b) => b.totalCostUsd - a.totalCostUsd);
 
     return {
-        logs,
-        summary: {
-            totalCalls: logs.length,
-            totalInputTokens,
-            totalOutputTokens,
-            totalTokens,
-            totalCostUsd, // Is already float USD
-            byStage,
-            byModel,
-        },
+        totalCostUsd,
+        projectCosts,
+        paperCosts,
     };
 }
 
 /**
- * Get project's LLM usage
+ * Get user's LLM usage cost summary in AI CREDITS (Total, Project-wise, Paper-wise)
+ * Uses the global usdToCreditsMultiplier from SystemConfig table
+ * Also returns remaining AI Credits balance
+ */
+export async function getUserUsageCredits(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date
+) {
+    // Construct date filter
+    const dateFilter: any = {};
+    if (startDate) dateFilter.gte = startDate;
+    if (endDate) dateFilter.lte = endDate;
+
+    const hasDateFilter = Object.keys(dateFilter).length > 0;
+
+    // Get Global USD to Credits Multiplier from history table
+    const multiplierRecord = await prisma.creditsMultiplierHistory.findFirst({
+        where: { isActive: true },
+        select: { usdToCreditsMultiplier: true },
+        orderBy: { effectiveFrom: 'desc' },
+    });
+    const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0; // Default: 1 USD = 100 Credits
+
+    // Get user's current balance
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { aiCreditsBalance: true },
+    });
+    const remainingCredits = user?.aiCreditsBalance || 0;
+
+    // 1. Total Cost (All usage for this user)
+    const totalUsageWhere: any = { userId };
+    if (hasDateFilter) {
+        totalUsageWhere.createdAt = dateFilter;
+    }
+
+    const totalCostAgg = await prisma.llmUsageLog.aggregate({
+        where: totalUsageWhere,
+        _sum: { totalCostUsd: true },
+    });
+    const totalCostUsd = totalCostAgg._sum.totalCostUsd || 0;
+    const totalCostCredits = totalCostUsd * multiplier;
+
+    // 2. Project Costs (For existing projects)
+    const projects = await prisma.userProject.findMany({
+        where: { userId },
+        select: {
+            id: true,
+            projectName: true,
+            llmUsageLogs: {
+                where: hasDateFilter ? { createdAt: dateFilter } : undefined,
+                select: { totalCostUsd: true },
+            },
+        },
+    });
+
+    const projectCosts = projects
+        .map((p) => {
+            const costUsd = p.llmUsageLogs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
+            return {
+                projectId: p.id,
+                projectName: p.projectName,
+                totalCostCredits: costUsd * multiplier,
+            };
+        })
+        .sort((a, b) => b.totalCostCredits - a.totalCostCredits);
+
+    // 3. Paper Costs (For existing papers)
+    const papers = await prisma.candidatePaper.findMany({
+        where: {
+            project: { userId },
+        },
+        select: {
+            id: true,
+            paperTitle: true,
+            projectId: true,
+            llmUsageLogs: {
+                where: hasDateFilter ? { createdAt: dateFilter } : undefined,
+                select: { totalCostUsd: true },
+            },
+        },
+    });
+
+    const paperCosts = papers
+        .map((p) => {
+            const costUsd = p.llmUsageLogs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
+            return {
+                paperId: p.id,
+                paperTitle: p.paperTitle,
+                projectId: p.projectId,
+                totalCostCredits: costUsd * multiplier,
+            };
+        })
+        .sort((a, b) => b.totalCostCredits - a.totalCostCredits);
+
+    return {
+        totalCostCredits,
+        remainingCredits, // Current balance
+        projectCosts,
+        paperCosts,
+    };
+}
+
+/**
+ * Get project's LLM usage in USD
  */
 export async function getProjectUsage(
     projectId: string,
@@ -178,7 +346,51 @@ export async function getProjectUsage(
 }
 
 /**
- * Get billing summary for all users (admin function)
+ * Get project's LLM usage in AI CREDITS
+ * Uses the global usdToCreditsMultiplier from SystemConfig table
+ */
+export async function getProjectUsageCredits(
+    projectId: string,
+    startDate?: Date,
+    endDate?: Date
+) {
+    const where: any = { projectId };
+
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+    }
+
+    const logs = await prisma.llmUsageLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+    });
+
+    // Get Global USD to Credits Multiplier from history table
+    const multiplierRecord = await prisma.creditsMultiplierHistory.findFirst({
+        where: { isActive: true },
+        select: { usdToCreditsMultiplier: true },
+        orderBy: { effectiveFrom: 'desc' },
+    });
+    const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0; // Default: 1 USD = 100 Credits
+
+    const totalCostUsd = logs.reduce((sum, log) => sum + (log.totalCostUsd || 0), 0);
+    const totalTokens = logs.reduce((sum, log) => sum + log.totalTokens, 0);
+    const totalCostCredits = totalCostUsd * multiplier;
+
+    return {
+        logs,
+        summary: {
+            totalCalls: logs.length,
+            totalTokens,
+            totalCostCredits,
+        },
+    };
+}
+
+/**
+ * Get billing summary for all users in USD (admin function)
  */
 export async function getAllUsersBillingSummary(
     startDate?: Date,
@@ -213,7 +425,7 @@ export async function getAllUsersBillingSummary(
                 user: log.user,
                 totalCalls: 0,
                 totalTokens: 0,
-                totalCostUsd: 0, // USD
+                totalCostUsd: 0,
             };
         }
         acc[log.userId].totalCalls++;
@@ -222,5 +434,85 @@ export async function getAllUsersBillingSummary(
         return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(byUser);
+    const users = Object.values(byUser);
+    const grandTotalCostUsd = users.reduce((sum: number, u: any) => sum + u.totalCostUsd, 0);
+
+    return {
+        users,
+        totalUsers: users.length,
+        grandTotalCostUsd,
+    };
 }
+
+/**
+ * Get billing summary for all users in AI CREDITS (admin function)
+ * Uses the global usdToCreditsMultiplier from SystemConfig table
+ */
+export async function getAllUsersBillingSummaryCredits(
+    startDate?: Date,
+    endDate?: Date
+) {
+    const where: any = {};
+
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+    }
+
+    // Get Global USD to Credits Multiplier from history table
+    const multiplierRecord = await prisma.creditsMultiplierHistory.findFirst({
+        where: { isActive: true },
+        select: { usdToCreditsMultiplier: true },
+        orderBy: { effectiveFrom: 'desc' },
+    });
+    const multiplier = multiplierRecord?.usdToCreditsMultiplierHistory || 100.0; // Default: 1 USD = 100 Credits
+
+    const logs = await prisma.llmUsageLog.findMany({
+        where,
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
+        },
+    });
+
+    // Group by user
+    const byUser = logs.reduce((acc, log) => {
+        if (!acc[log.userId]) {
+            acc[log.userId] = {
+                user: {
+                    id: log.user.id,
+                    email: log.user.email,
+                    firstName: log.user.firstName,
+                    lastName: log.user.lastName,
+                },
+                totalCalls: 0,
+                totalTokens: 0,
+                totalCostCredits: 0,
+            };
+        }
+        const costUsd = log.totalCostUsd || 0;
+        acc[log.userId].totalCalls++;
+        acc[log.userId].totalTokens += log.totalTokens;
+        // Calculate credits using global multiplier
+        acc[log.userId].totalCostCredits += costUsd * multiplier;
+        return acc;
+    }, {} as Record<string, any>);
+
+    const users = Object.values(byUser);
+    const grandTotalCostCredits = users.reduce((sum: number, u: any) => sum + u.totalCostCredits, 0);
+
+    return {
+        users,
+        totalUsers: users.length,
+        grandTotalCostCredits,
+    };
+}
+
+
