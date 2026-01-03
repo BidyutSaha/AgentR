@@ -78,7 +78,7 @@ export async function logLlmUsage(data: LogLlmUsageInput) {
 /**
  * Deduct AI Credits from user's balance based on USD cost
  */
-async function deductCreditsFromUser(userId: string, costUsd: number) {
+export async function deductCreditsFromUser(userId: string, costUsd: number) {
     try {
         // Get current USD to Credits multiplier from history table
         const multiplierRecord = await prisma.creditsMultiplierHistory.findFirst({
@@ -90,6 +90,13 @@ async function deductCreditsFromUser(userId: string, costUsd: number) {
 
         // Calculate credits to deduct
         const creditsToDeduct = costUsd * multiplier;
+
+        logger.info(`🔍 DEBUG DEDUCT: Cost=${costUsd}, Multiplier=${multiplier}, Deduct=${creditsToDeduct}`);
+
+        if (creditsToDeduct <= 0) {
+            logger.warn('⚠️ Zero credit deduction calculated. Skipping DB update.');
+            return;
+        }
 
         // Deduct from user balance
         const updatedUser = await prisma.user.update({
@@ -105,8 +112,9 @@ async function deductCreditsFromUser(userId: string, costUsd: number) {
             },
         });
 
-        logger.info(`Deducted ${creditsToDeduct.toFixed(2)} credits from ${updatedUser.email}. New balance: ${updatedUser.aiCreditsBalance.toFixed(2)}`);
+        logger.info(`✅ Deducted ${creditsToDeduct.toFixed(4)} credits from ${updatedUser.email}. Old: ${(updatedUser.aiCreditsBalance + creditsToDeduct).toFixed(4)} -> New: ${updatedUser.aiCreditsBalance.toFixed(4)}`);
     } catch (error) {
+        console.error('❌ CRITICAL ERROR DEDUCTING CREDITS:', error);
         logger.error('Error deducting credits:', error);
         // Don't throw - we don't want credit deduction to break the main flow
     }
@@ -231,13 +239,6 @@ export async function getUserUsageCredits(
     });
     const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0; // Default: 1 USD = 100 Credits
 
-    // Get user's current balance
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { aiCreditsBalance: true },
-    });
-    const remainingCredits = user?.aiCreditsBalance || 0;
-
     // 1. Total Cost (All usage for this user)
     const totalUsageWhere: any = { userId };
     if (hasDateFilter) {
@@ -304,10 +305,9 @@ export async function getUserUsageCredits(
         .sort((a, b) => b.totalCostCredits - a.totalCostCredits);
 
     return {
-        totalCostCredits,
-        remainingCredits, // Current balance
-        projectCosts,
-        paperCosts,
+        totalUsedCredits: totalCostCredits,
+        projectUsedCredits: projectCosts,
+        paperUsedCredits: paperCosts,
     };
 }
 
@@ -466,7 +466,7 @@ export async function getAllUsersBillingSummaryCredits(
         select: { usdToCreditsMultiplier: true },
         orderBy: { effectiveFrom: 'desc' },
     });
-    const multiplier = multiplierRecord?.usdToCreditsMultiplierHistory || 100.0; // Default: 1 USD = 100 Credits
+    const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0; // Default: 1 USD = 100 Credits
 
     const logs = await prisma.llmUsageLog.findMany({
         where,

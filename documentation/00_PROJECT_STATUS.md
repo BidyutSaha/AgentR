@@ -39,6 +39,16 @@ Complete production-ready codebase cleanup and bring project into full complianc
 - **Stage 2: Query Generation** - Generates search queries from intent
 - **Paper Scoring** - Evaluates papers for relevance and novelty
 
+### ✅ AI Credits System
+- **Comprehensive Credit Management**
+  - **4 Database Tables**: `credits_multiplier_history`, `default_credits_history`, `user_credits_transactions`, `users.ai_credits_balance`
+  - **History Tracking**: Full Type 2 SCD tracking for configuration changes (multiplier, default credits)
+  - **Transactional Ledger**: Strict "double-entry" style transaction logging for all admin adjustments
+  - **Admin APIs**: Recharge, deduct, view history, update configs
+  - **User APIs**: View balance
+  - **Performance**: Cached balance in User table for O(1) access
+  - **Auditability**: All manual changes tracked with admin ID and reason
+
 ### ✅ Development Infrastructure
 - TypeScript with Express.js
 - Environment configuration with Zod validation
@@ -47,7 +57,7 @@ Complete production-ready codebase cleanup and bring project into full complianc
 - Error handling middleware
 
 ### ✅ Documentation (Production-Ready)
-- **10 core documentation files** (00-09) following rules.md
+- **11 core documentation files** (00-10) following rules.md
 - **ER diagram** for database schema (MANDATORY requirement met)
 - **6 LLM workflow diagrams** (activity + sequence for 3 stages)
 - **48 legacy files archived** with consolidation map
@@ -74,7 +84,7 @@ Complete production-ready codebase cleanup and bring project into full complianc
 2. ✅ Create database ER diagram
 3. ✅ Consolidate API documentation
 4. ✅ Archive old documentation files
-5. ⚪ Create comprehensive testing documentation
+5. ✅ Document Database Normalization Status
 
 ### Priority 2: Code Quality (Next Week)
 1. ⚪ Add JSDoc to all services
@@ -94,12 +104,6 @@ Complete production-ready codebase cleanup and bring project into full complianc
 
 ## Known Issues / Tech Debt
 
-### Documentation
-- ❌ **48 documentation files** (should be 10) - **FIXING NOW**
-- ❌ No ER diagram for database schema - **CREATING NOW**
-- ❌ API documentation scattered across multiple files - **CONSOLIDATING NOW**
-- ❌ No centralized testing documentation
-
 ### Code Quality
 - ⚠️ Missing JSDoc on many functions
 - ⚠️ Some functions lack proper error handling
@@ -116,6 +120,13 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ## Recent Changes
 
 ### 2026-01-03
+- **✅ Complete AI Credits System**
+  - Implemented full credits lifecycle: Signup bonus, LLM deduction, Admin recharge/deduct
+  - Created 3 new database tables for history tracking and audit trails
+  - Implemented Type 2 SCD for system configurations (multiplier, default credits)
+  - Added 10 new API endpoints for credits and system config management
+  - Updated ER Diagram and API Documentation
+  - Created Database Normalization Analysis
 - **✅ Updated API Documentation**
   - Added missing authentication endpoints documentation to `03_API.md`
   - Documented `resend-verification`, `forgot-password`, `reset-password`, `refresh`, `change-password`, and `logout`
@@ -125,7 +136,6 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Provides total cost, project-wise breakdown, and paper-wise breakdown
   - Updated service logic to aggregate costs from usage logs
   - Updated API documentation
-
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**
@@ -189,21 +199,21 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ## Metrics
 
 ### Code
-- **Backend**: ~15,000 lines of TypeScript
+- **Backend**: ~16,500 lines of TypeScript
 - **Test Coverage**: ~40% (Target: 70%)
-- **API Endpoints**: 25 (9 auth, 5 projects, 3 LLM stages, 3 usage, 4 pricing, 1 health)
+- **API Endpoints**: 35 (9 auth, 5 projects, 3 LLM stages, 3 usage, 4 pricing, 10 credits/config, 1 health)
 
 ### Documentation
-- **Current**: 48 files (scattered)
-- **Target**: 10 core files (consolidating now)
-- **ER Diagram**: Creating now
-- **API Docs**: Consolidating now
+- **Current**: 11 core files + 1 analysis
+- **Target**: 10+ core files
+- **ER Diagram**: Complete
+- **API Docs**: Complete
 
 ### Database
-- **Tables**: 4 (users, user_projects, verification_tokens, password_reset_tokens)
-- **Migrations**: 3
-- **Indexes**: 6
-- **Foreign Keys**: 3
+- **Tables**: 11
+- **Migrations**: 4
+- **Indexes**: 8 # approximate
+- **Foreign Keys**: 5 # approximate
 
 ---
 

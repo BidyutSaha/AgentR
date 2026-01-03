@@ -2654,6 +2654,154 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## LLM Usage Tracking - AI Credits (Protected)
+
+### GET /v1/llm-usage/my-usage-credits
+
+**Description**: Get current user's LLM usage statistics and costs **in AI Credits**.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    totalUsedCredits: number;
+    projectUsedCredits: Array<{
+      projectId: string;
+      projectName: string;
+      totalCostCredits: number;
+    }>;
+    paperUsedCredits: Array<{
+      paperId: string;
+      paperTitle: string;
+      projectId: string;
+      totalCostCredits: number;
+    }>;
+  }
+}
+```
+
+---
+
+### GET /v1/llm-usage/project-credits/:projectId
+
+**Description**: Get LLM usage statistics for a specific project **in AI Credits**.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User (must own project)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    summary: {
+      totalCalls: number;
+      totalTokens: number;
+      totalCostCredits: number;
+    };
+  }
+}
+```
+
+---
+
+### GET /v1/llm-usage/admin/all-users-credits
+
+**Description**: Get aggregated billing data for all users in **AI Credits**.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    users: Array<{
+      user: { id: string; email: string; firstName: string; lastName: string };
+      totalCalls: number;
+      totalTokens: number;
+      totalCostCredits: number;
+    }>;
+    totalUsers: number;
+    grandTotalCostCredits: number;
+  }
+}
+```
+
+---
+
+## Model Pricing Management (Admin Only)
+
+### POST /v1/admin/model-pricing
+
+**Description**: Create a new pricing configuration for an LLM model.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  modelName: string;       // e.g., "gpt-4o"
+  provider: string;        // e.g., "openai"
+  pricingTier: string;     // e.g., "standard"
+  inputUsdPricePerMillionTokens: number;
+  outputUsdPricePerMillionTokens: number;
+  cachedInputUsdPricePerMillionTokens?: number;
+  effectiveFrom: string;   // ISO Date
+}
+```
+
+---
+
+### GET /v1/admin/model-pricing
+
+**Description**: List all model pricing configurations.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+### PATCH /v1/admin/model-pricing/:id
+
+**Description**: Update an existing pricing configuration.
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
+### DELETE /v1/admin/model-pricing/:id
+
+**Description**: Delete a pricing configuration (soft delete or hard delete depending on implementation).
+
+**Authentication**: Required (JWT)  
+**Roles**: Admin
+
+---
+
 ## Health Check
 
 ### GET /v1/health

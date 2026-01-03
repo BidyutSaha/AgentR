@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import logger from '../config/logger';
 import { calculateCost } from './modelPricing/modelPricing.service';
+import { deductCreditsFromUser } from './llmUsage/llmUsage.service';
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,7 @@ export interface LogLlmUsageParams {
  * This function should be called after every LLM API call
  */
 export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
+    console.log('!!! LOGGING USAGE & DEDUCTING !!!', params.stage);
     try {
         const {
             userId,
@@ -77,6 +79,9 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
                 metadata: metadata ? JSON.stringify(metadata) : null,
             },
         });
+
+        // Deduct AI Credits
+        await deductCreditsFromUser(userId, totalCostUsd);
 
         logger.info({
             action: 'llm_usage_logged',
