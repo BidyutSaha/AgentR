@@ -43,10 +43,13 @@ export const categorizeOutputSchema = z.object({
     c2_justification: z.string(),
     c2_contribution_type: c2ContributionTypeSchema,
     c2_relevance_areas: z.array(z.string()),
+    c2_strengths: z.array(z.string()),
+    c2_weaknesses: z.array(z.string()),
 
     // Research Gap Analysis
     research_gaps: z.array(z.string()),
     user_novelty: z.string(),
+    candidate_advantage: z.string(), // Added
 });
 
 export type CategorizeOutput = z.infer<typeof categorizeOutputSchema>;

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { parse } from 'csv-parse/sync';
 import {
     createCandidatePaper,
     getCandidatePapers,
@@ -10,6 +11,15 @@ import {
     deleteCandidatePaperByIdOnly,
 } from '../services/candidatePaper/candidatePaper.service';
 import logger from '../config/logger';
+
+/**
+ * Create a new candidate paper for a project
+ * 
+ * @route POST /v1/user-projects/:projectId/papers
+ * @access Protected
+ */
+import { paperQueue, JOB_NAMES } from '../queues';
+import prisma from '../config/database';
 
 /**
  * Create a new candidate paper for a project
@@ -29,10 +39,43 @@ export async function handleCreateCandidatePaper(
 
         const paper = await createCandidatePaper(projectId, userId, paperData);
 
-        res.status(201).json({
+        // Fetch Project to get User Abstract (userIdea)
+        const project = await prisma.userProject.findUnique({
+            where: { id: projectId },
+            select: { userIdea: true }
+        });
+
+        if (project && project.userIdea) {
+            // Create Background Job Record
+            const backgroundJob = await prisma.backgroundJob.create({
+                data: {
+                    userId,
+                    projectId,
+                    paperId: paper.id,
+                    jobType: 'PAPER_SCORING',
+                    status: 'PENDING',
+                }
+            });
+
+            // Dispatch Async Job
+            await paperQueue.add(JOB_NAMES.PAPER_SCORING, {
+                backgroundJobId: backgroundJob.id,
+                projectId,
+                paperId: paper.id,
+                userId,
+                stageData: {
+                    userAbstract: project.userIdea,
+                    candidateAbstract: paperData.paperAbstract,
+                    title: paperData.paperTitle
+                }
+            });
+        }
+
+        res.status(202).json({
             success: true,
             data: {
                 paper,
+                message: 'Paper added and scoring started in background'
             },
         });
     } catch (error) {
@@ -239,6 +282,145 @@ export async function handleDeleteCandidatePaperByIdOnly(
         });
     } catch (error) {
         logger.error('Error deleting candidate paper:', error);
+        next(error);
+    }
+}
+
+/**
+ * Bulk upload candidate papers via CSV
+ *
+ * @route POST /v1/user-projects/:projectId/papers/bulk-upload
+ * @access Protected
+ */
+export async function handleBulkUploadCandidatePapers(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const { projectId } = req.params;
+        const userId = req.userId!;
+
+        if (!req.file) {
+            res.status(400).json({ success: false, message: 'No file uploaded' });
+            return;
+        }
+
+        // Fetch Project for User Abstract (userIdea)
+        const project = await prisma.userProject.findUnique({
+            where: { id: projectId },
+            select: { userIdea: true }
+        });
+
+        if (!project) {
+            res.status(404).json({ success: false, message: 'Project not found' });
+            return;
+        }
+
+        const fileContent = req.file.buffer.toString('utf-8');
+        const records = parse(fileContent, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true
+        });
+
+        let processedCount = 0;
+        let failedCount = 0;
+        const errors: any[] = [];
+
+        // We will process sequentially to avoid overwhelming DB
+        for (const [index, record] of records.entries()) {
+            const rowNumber = index + 1;
+            const row = record as any;
+
+            // Validate Row (Flexible standard headers)
+            const title = row.title || row.Title || row.paperTitle;
+            const abstract = row.abstract || row.Abstract || row.paperAbstract || '';
+            const downloadLink = row.url || row.URL || row.link || row.Link || row.paperDownloadLink || null;
+
+            if (!title) {
+                failedCount++;
+                errors.push({ row: rowNumber, reason: 'Missing title' });
+                continue;
+            }
+
+            try {
+                // Create Paper
+                const paper = await createCandidatePaper(projectId, userId, {
+                    paperTitle: title,
+                    paperAbstract: abstract,
+                    paperDownloadLink: downloadLink
+                });
+
+                // Dispatch Job if Project Abstract Available
+                if (project.userIdea) {
+                    const backgroundJob = await prisma.backgroundJob.create({
+                        data: {
+                            userId,
+                            projectId,
+                            paperId: paper.id,
+                            jobType: 'PAPER_SCORING',
+                            status: 'PENDING',
+                        }
+                    });
+
+                    await paperQueue.add(JOB_NAMES.PAPER_SCORING, {
+                        backgroundJobId: backgroundJob.id,
+                        projectId,
+                        paperId: paper.id,
+                        userId,
+                        stageData: {
+                            userAbstract: project.userIdea,
+                            candidateAbstract: abstract,
+                            title: title
+                        }
+                    });
+                }
+
+                processedCount++;
+
+            } catch (err: any) {
+                failedCount++;
+                errors.push({ row: rowNumber, reason: err.message });
+            }
+        }
+
+        res.status(202).json({
+            success: true,
+            data: {
+                processedCount,
+                failedCount,
+                message: `Queued ${processedCount} papers for scoring. ${failedCount} failed.`,
+                errors: errors.length > 0 ? errors : undefined
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error in bulk upload:', error);
+        next(error);
+    }
+}
+
+/**
+ * Download CSV Template for Bulk Upload
+ *
+ * @route GET /v1/user-projects/papers/bulk-upload-template
+ * @access Protected
+ */
+export async function handleGetBulkUploadTemplate(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> {
+    try {
+        const csvContent = 'title,abstract,url';
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="papers_template.csv"');
+        res.status(200).send(csvContent);
+
+    } catch (error) {
+        logger.error('Error generating template:', error);
         next(error);
     }
 }

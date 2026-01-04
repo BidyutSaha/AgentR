@@ -65,4 +65,13 @@ router.put('/:projectId', authenticate, apiLimiter, userProjectController.update
  */
 router.delete('/:projectId', authenticate, apiLimiter, userProjectController.deleteProject);
 
+/**
+ * @route   GET /v1/user-projects/:projectId/export
+ * @desc    Export project report as Excel
+ * @access  Private
+ * @header  Authorization: Bearer <access_token>
+ * @param   projectId - Project ID
+ */
+router.get('/:projectId/export', authenticate, apiLimiter, userProjectController.exportProject);
+
 export default router;

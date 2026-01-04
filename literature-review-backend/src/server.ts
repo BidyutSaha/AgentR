@@ -25,6 +25,14 @@ async function startServer(): Promise<void> {
             logger.warn('Email connection test failed (continuing anyway):', error);
         }
 
+        // Initialize Background Workers
+        try {
+            await import('./workers');
+            logger.info('✓ Background workers initialized');
+        } catch (error) {
+            logger.error('Failed to initialize workers:', error);
+        }
+
         // Create Express app
         logger.info('Creating Express app...');
         const app = createApp();

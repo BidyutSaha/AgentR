@@ -167,10 +167,30 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Added fields: `expandedKeywords`, `searchQueries`.
   - Added `ProcessingStatus` enum for tracking stage status (Evaluated, Failed, etc.).
   - Updated `04_DATABASE.md` with new schema.
-- **✅ Enhanced Search Query Generation (Stage 2)**
   - Updated prompt to generate **10 distinct general-purpose search queries** (Google Scholar, IEEE, ACM optimized).
   - Replaced engine-specific queries with a consolidated list of highly efficient query combinations.
   - Updated API Schema and Documentation (`03_API.md`) to reflect the new output format (`searchQueries` array).
+- **✅ Asynchronous Architecture & Email Service**
+  - Refactored `UserProject` creation to dispatch `PROJECT_INIT_INTENT` background job.
+  - Refactored `CandidatePaper` (Add Paper) to dispatch `PAPER_SCORING` background job.
+  - Implemented `jobs.controller` to allow resuming failed jobs.
+  - Replaced Mock Email Service with functional `nodemailer` implementation.
+  - Added Email Worker to send `PROJECT_INIT_COMPLETE` and `PROJECT_SCORING_COMPLETE` notifications.
+  - Updated `rules.md` and `03_API.md` with Async standards (202 Accepted).
+- **✅ Bulk Paper Upload**
+  - Implemented `POST /v1/user-projects/:projectId/papers/bulk-upload` endpoint.
+  - Supports CSV file upload via `multer`.
+  - Parses CSV and creates `CandidatePaper` records in batch.
+  - Dispatches async `PAPER_SCORING` jobs for each valid paper row.
+  - Updated API Documentation with CSV format details.
+
+  - Reads `searchQueries` array/object from project data.
+- **✅ Project Export**
+  - Implemented `GET /v1/user-projects/:projectId/export`.
+  - Generates an Excel report (`.xlsx`) via `exceljs`.
+  - **Sheet 1**: Project Overview (Name, Intent Analysis, Queries).
+  - **Sheet 2**: Scored Papers (Titles, Abstracts, Scores, Gaps).
+  - Cleaned Markdown formatting for readability.
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

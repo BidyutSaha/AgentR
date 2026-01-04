@@ -100,6 +100,7 @@ model UserProject {
   userIdea    String   @map("user_idea") @db.Text // Text field for unlimited length
 
   // Stage 1: Intent Decomposition
+  problemStatement      String?          @map("problem_statement") @db.Text
   methodologies         String[]         @default([]) @map("methodologies")
   applicationDomains    String[]         @default([]) @map("application_domains")
   constraints           String[]         @default([]) @map("constraints")
@@ -145,6 +146,7 @@ model CandidatePaper {
   
   // Overlap Analysis
   problemOverlap      String?   @map("problem_overlap") // 'high' | 'medium' | 'low'
+  methodOverlap       String?   @map("method_overlap")  // 'high' | 'medium' | 'low'
   domainOverlap       String?   @map("domain_overlap")  // 'high' | 'medium' | 'low'
   constraintOverlap   String?   @map("constraint_overlap") // 'high' | 'medium' | 'low'
   
@@ -159,10 +161,13 @@ model CandidatePaper {
   c2Justification     String?   @map("c2_justification") @db.Text
   c2ContributionType  String?   @map("c2_contribution_type") @db.Text
   c2RelevanceAreas    String?   @map("c2_relevance_areas") @db.Text
+  c2Strengths         String?   @map("c2_strengths") @db.Text
+  c2Weaknesses        String?   @map("c2_weaknesses") @db.Text
   
   // Gap Analysis
   researchGaps        String?   @map("research_gaps") @db.Text
   userNovelty         String?   @map("user_novelty") @db.Text
+  candidateAdvantage  String?   @map("candidate_advantage") @db.Text
   
   // LLM Metadata
   modelUsed           String?   @map("model_used")
@@ -393,3 +398,46 @@ model UserCreditsTransaction {
   @@map("user_credits_transactions")
 }
 
+
+// ============================================================================
+// BACKGROUND JOBS TABLE (for BullMQ tracking)
+// ============================================================================
+
+enum JobType {
+  PROJECT_INIT_INTENT
+  PROJECT_INIT_QUERY
+  PAPER_SCORING
+  SEND_EMAIL
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  FAILED_NO_CREDITS
+}
+
+model BackgroundJob {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id") // Owner
+  projectId     String?   @map("project_id") // Project context
+  paperId       String?   @map("paper_id") // Paper context (optional)
+  
+  jobType       JobType   @map("job_type") // INTENT, QUERY, PAPER_SCORE
+  bullJobId     String?   @map("bull_job_id") // Reference to BullMQ job ID
+  
+  status        JobStatus @default(PENDING) // PENDING, PROCESSING, COMPLETED, FAILED
+  failureReason String?   @map("failure_reason") @db.Text // e.g., "INSUFFICIENT_CREDITS"
+  
+  attempts      Int       @default(0) // Retry attempts
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, jobType])
+  @@index([userId])
+  @@index([projectId])
+  @@index([userId, status]) // Filter jobs by user and status
+  @@map("background_jobs")
+}

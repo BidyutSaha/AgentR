@@ -384,7 +384,31 @@ Diagrams (Activity + Sequence) are **REQUIRED** for endpoints that:
 
 ---
 
-### 3.4 API Response Structure (Standard)
+### 3.4 Asynchronous Processing & Background Jobs (MANDATORY)
+
+For Long-Running tasks (LLM generation, heavy processing), use the **Asynchronous Pattern**:
+
+1.  **Endpoint**: Returns `202 Accepted` immediately.
+2.  **Response Body**:
+    ```json
+    {
+      "success": true,
+      "data": {
+        "jobId": "uuid",
+        "status": "processing_started",
+        "message": "Task has been queued"
+      }
+    }
+    ```
+3.  **Job Tracking**:
+    *   Use `background_jobs` table to track status.
+    *   Status: `PENDING` -> `PROCESSING` -> `COMPLETED` | `FAILED`.
+    *   **Credit Checks**: Must be performed in the WORKER, not just the controller.
+    *   **ACID**: Database updates and Credit deduction must happen atomically (or idempotently).
+
+---
+
+### 3.5 API Response Structure (Standard)
 
 All API responses MUST follow this structure:
 

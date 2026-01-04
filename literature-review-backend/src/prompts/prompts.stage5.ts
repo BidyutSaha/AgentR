@@ -38,10 +38,13 @@ You must analyze and return:
    - c2_justification: Detailed explanation of how this supports the research
    - c2_contribution_type: Type of support ("methodology", "problem_context", "domain_knowledge", "constraint_analysis", "related_application", "theoretical_foundation")
    - c2_relevance_areas: Specific areas where this work is relevant (array of strings)
+   - c2_strengths: What makes this work useful as support (array of strings)
+   - c2_weaknesses: Why this isn't sufficient on its own (array of strings)
 
 4. **Research Gap Analysis:**
    - research_gaps: What is the candidate paper missing or not addressing that the user's work aims to solve? (array of strings)
    - user_novelty: How does the user's work fill these gaps? What makes it novel compared to this candidate? (string)
+   - candidate_advantage: What distinct advantages does the candidate paper have that the user's current proposal lacks or does not address? (string)
 
 Return your analysis as a JSON object with these exact fields:
 - semantic_similarity (number)
@@ -57,8 +60,11 @@ Return your analysis as a JSON object with these exact fields:
 - c2_justification (string)
 - c2_contribution_type (string)
 - c2_relevance_areas (array of strings)
+- c2_strengths (array of strings)
+- c2_weaknesses (array of strings)
 - research_gaps (array of strings)
 - user_novelty (string)
+- candidate_advantage (string)
 
 **Scoring Guidelines:**
 - C1 Score: 

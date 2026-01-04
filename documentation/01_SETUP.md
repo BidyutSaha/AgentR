@@ -55,13 +55,37 @@ npm install
 ```
 
 This will install all required packages including:
-- Express.js (web framework)
 - Prisma (ORM)
 - TypeScript
 - Zod (validation)
 - JWT libraries
 - OpenAI SDK
+- BullMQ (Background Jobs)
 - And more...
+
+---
+
+## Redis Setup (Required for Background Jobs)
+
+The system uses Redis for managing background job queues (emailing, scoring, etc.).
+
+### Option A: Using Docker (Recommended)
+
+1. Ensure Docker Desktop is installed and running.
+2. In the `literature-review-backend` directory, run:
+   ```bash
+   docker-compose up -d
+   ```
+
+### Option B: Direct Installation (Windows)
+
+1. **WSL2 (Recommended)**: Install Redis inside your WSL distribution.
+   ```bash
+   sudo apt-get install redis-server
+   sudo service redis-server start
+   ```
+2. **Memurai**: Download developer edition from [memurai.com](https://www.memurai.com/get-memurai).
+3. **Microsoft Archive**: (Not recommended for production) Download .msi from [GitHub](https://github.com/microsoftarchive/redis/releases).
 
 ---
 

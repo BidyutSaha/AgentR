@@ -28,52 +28,57 @@ Complete API reference for the Literature Review System.
 12. [GET /v1/user-projects/user/:userId](#get-v1user-projectsuseruserid) - Get all user projects
 13. [PATCH /v1/user-projects/:id](#patch-v1user-projectsid) - Update project
 14. [DELETE /v1/user-projects/:id](#delete-v1user-projectsid) - Delete project
+15. [GET /v1/user-projects/:projectId/export](#get-v1user-projectsprojectidexport) - Export project report (Excel)
 
 ### Candidate Papers (Protected)
-15. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
-16. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
-17. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
-18. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
-19. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
+16. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
+16. [POST /v1/user-projects/:projectId/papers/bulk-upload](#post-v1user-projectsprojectidpapersbulk-upload) - Bulk upload papers (CSV)
+17. [GET /v1/user-projects/papers/bulk-upload-template](#get-v1user-projectspapersbulk-upload-template) - Download CSV template
+18. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
+19. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
+20. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
+21. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
+
+### Background Jobs (Protected)
+23. [POST /v1/jobs/:jobId/resume](#post-v1jobsjobidresume) - Resume failed job
 
 ### LLM Pipeline (Protected)
-20. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-21. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-22. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+24. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+25. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+26. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### LLM Usage Tracking - USD (Protected)
-23. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
-24. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
-25. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
+27. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
+28. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
+29. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
 
 ### LLM Usage Tracking - AI Credits (Protected)
-26. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
-27. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
-28. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
-29. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
+30. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
+31. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
+32. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
+33. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
 
 ### Model Pricing Management (Admin Only)
-29. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
-30. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
-31. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
-32. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
+34. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
+35. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
+36. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
+37. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
 
 ### Health Check (Public)
-33. [GET /v1/health](#get-v1health) - Health check
+38. [GET /v1/health](#get-v1health) - Health check
 
 ### System Configuration (Admin Only)
-34. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
-35. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
-36. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
-37. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
-38. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
+39. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
+40. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
+41. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
+42. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
+43. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
 
 ### Credits Management (Admin Only)
-39. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
-40. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
-41. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
-42. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
-
+44. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
+45. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
+46. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
+47. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
 
 
 ---
@@ -955,7 +960,7 @@ Content-Type: application/json
 
 ### POST /v1/user-projects
 
-**Description**: Create a new research project for the authenticated user.
+**Description**: Create a new research project and initiate background analysis (Intent Decomposition & Query Generation).
 
 **Authentication**: Required (JWT)  
 **Roles**: Authenticated User
@@ -979,18 +984,23 @@ Content-Type: application/json
 
 #### Output Structure
 
-**Success Response** (201 Created):
+**Success Response** (202 Accepted):
 ```typescript
 {
   success: true;
   data: {
-    id: string;
-    userId: string;
-    projectName: string;
-    userIdea: string;
-    createdAt: string;      // ISO 8601 timestamp
-    updatedAt: string;      // ISO 8601 timestamp
+    project: {
+       id: string;
+       userId: string;
+       projectName: string;
+       userIdea: string;
+       createdAt: string;
+       updatedAt: string;
+    };
+    jobId: string;       // Background Job UUID
+    status: string;      // e.g., "processing_started"
   };
+  message: string;
 }
 ```
 
@@ -1013,18 +1023,23 @@ Content-Type: application/json
 
 #### Sample Response
 
-**Success (201 Created)**:
+**Success (202 Accepted)**:
 ```json
 {
   "success": true,
   "data": {
-    "id": "proj_550e8400-e29b-41d4-a716-446655440000",
-    "userId": "user_123e4567-e89b-12d3-a456-426614174000",
-    "projectName": "AI-Powered Literature Review",
-    "userIdea": "This research explores the use of large language models for automated literature review and research gap discovery in academic research.",
-    "createdAt": "2025-12-31T12:00:00.000Z",
-    "updatedAt": "2025-12-31T12:00:00.000Z"
-  }
+    "project": {
+      "id": "proj_550e8400-e29b-41d4-a716-446655440000",
+      "userId": "user_123e4567-e89b-12d3-a456-426614174000",
+      "projectName": "AI-Powered Literature Review",
+      "userIdea": "This research explores the use of large language models for automated literature review and research gap discovery in academic research.",
+      "createdAt": "2025-12-31T12:00:00.000Z",
+      "updatedAt": "2025-12-31T12:00:00.000Z"
+    },
+    "jobId": "job_999e8400-e29b-41d4-a716-446655449999",
+    "status": "processing_started"
+  },
+  "message": "Project created and processing started in background"
 }
 ```
 
@@ -1036,22 +1051,23 @@ Content-Type: application/json
 |--------|------------|-------------|---------|
 | 400 | `VALIDATION_ERROR` | Invalid input | Project name too long |
 | 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
-| 500 | `INTERNAL_ERROR` | Server error | Database error |
+| 500 | `INTERNAL_ERROR` | Server error | Database connection failed |
 
 ---
 
 #### Diagrams
 
-**Diagrams**: Not required (simple CRUD operation)
+**Activity Diagram**: `docs/diagrams/project-creation-activity.puml`
+**Sequence Diagram**: `docs/diagrams/project-creation-sequence.puml`
 
 ---
 
 #### Business Logic Notes
 
-- `userId` is automatically extracted from JWT token
-- Project is associated with authenticated user
-- `userIdea` field supports unlimited text length
-- Timestamps are automatically managed
+- **Asynchronous Workflow**: Project creation triggers `PROJECT_INIT_INTENT` background job.
+- **Stage 1 & 2 Execution**: Job sequentially runs Intent Analysis and Search Query Generation.
+- **Credit Check**: Credits are checked and deducted asynchronously during processing.
+- **Notifications**: User receives email upon completion.
 
 ---
 
@@ -1432,6 +1448,63 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+
+---
+
+### GET /v1/user-projects/:projectId/export
+
+**Description**: Export project report as an Excel file. Contains two sheets: "Project Overview" and "Scored Papers".
+
+**Authentication**: Required  
+**Roles**: Project Owner
+
+---
+
+#### Input Structure
+
+**Path Parameters**:
+- `:projectId` (string, required) — Project ID
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+- **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- **Content-Disposition**: `attachment; filename="Project_Report_<ID>.xlsx"`
+- **Body**: Binary Excel file.
+
+**Excel Structure**:
+1.  **Sheet 1: Project Overview**
+    - Project Name, User Idea
+    - Intent Analysis (Methodologies, Domains, etc.)
+    - Generated Queries
+2.  **Sheet 2: Scored Papers**
+    - Title, Abstract, URL
+    - Scores (C1, C2, Similarity)
+    - C2 Details (Contribution, Relevance, Strengths, Weaknesses)
+    - Analysis (Justification, Gaps, Novelty, Candidate Advantage)
+    - (Markdown stripped to plain text)
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/user-projects/proj_123/export
+Authorization: Bearer <token>
+```
+
+---
+
+#### Business Logic Notes
+
+- **Formatting**: Removes Markdown symbols (*, #, `) for readability.
+- **Privacy**: Excludes internal IDs and credit usage data.
+- **Sheets**: logical separation of Project vs. Papers.
+
+---
+
 ## Candidate Papers Endpoints
 
 ### POST /v1/user-projects/:projectId/papers
@@ -1464,40 +1537,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 #### Output Structure
 
-**Success Response** (201 Created):
+**Success Response** (202 Accepted):
 ```typescript
 {
   success: true;
   data: {
-    paper: {
-      id: string;
-      projectId: string;
-      paperTitle: string;
-      paperAbstract: string;
-      paperDownloadLink: string | null;
-      isProcessedByLlm: boolean;           // false (default)
-      semanticSimilarity: number | null;   // null (not yet processed)
-      similarityModelName: string | null;  // null
-      problemOverlap: string | null;       // null
-      domainOverlap: string | null;        // null
-      constraintOverlap: string | null;    // null
-      c1Score: number | null;              // null
-      c1Justification: string | null;      // null
-      c1Strengths: string | null;          // null
-      c1Weaknesses: string | null;         // null
-      c2Score: number | null;              // null
-      c2Justification: string | null;      // null
-      c2ContributionType: string | null;   // null
-      c2RelevanceAreas: string | null;     // null
-      researchGaps: string | null;         // null
-      userNovelty: string | null;          // null
-      modelUsed: string | null;            // null
-      inputTokensUsed: number | null;      // null
-      outputTokensUsed: number | null;     // null
-      processedAt: string | null;          // null
-      createdAt: string;                   // ISO 8601 timestamp
-      updatedAt: string;                   // ISO 8601 timestamp
-    };
+    paper: CandidatePaper; // The created paper object
+    message: string;       // "Paper added and scoring started in background"
   };
 }
 ```
@@ -1522,7 +1568,7 @@ Content-Type: application/json
 
 #### Sample Response
 
-**Success (201 Created)**:
+**Success (202 Accepted)**:
 ```json
 {
   "success": true,
@@ -1555,7 +1601,8 @@ Content-Type: application/json
       "processedAt": null,
       "createdAt": "2025-12-31T15:00:00.000Z",
       "updatedAt": "2025-12-31T15:00:00.000Z"
-    }
+    },
+    "message": "Paper added and scoring started in background"
   }
 }
 ```
@@ -1592,18 +1639,133 @@ Content-Type: application/json
 
 #### Diagrams
 
-**Diagrams**: Not required (simple CRUD operation)
+**Activity/Sequence Diagram**: Required (Async Paper Scoring)
 
 ---
 
 #### Business Logic Notes
 
-- Paper is created with basic info only (title, abstract, link)
-- All LLM analysis fields are NULL until processing is triggered via `/process` endpoint
-- `isProcessedByLlm` is false by default
-- User must own the project to add papers
-- `paperDownloadLink` is optional (can be null)
-- Papers are automatically deleted when project is deleted (CASCADE)
+- Paper is created with basic info only.
+- **Background Scoring**: Creation automatically triggers `PAPER_SCORING` background job.
+- **Scoring Logic**: Worker uses Project's User Abstract vs Candidate Paper Abstract.
+- **Credit Check**: Credits are checked and deducted asynchronously.
+- **Notifications**: Email sent when ALL papers in project are processed.
+- `isProcessedByLlm` remains false until background job completes.
+
+---
+
+
+---
+
+## POST /v1/user-projects/:projectId/papers/bulk-upload
+
+**Description**: Bulk upload candidate papers via CSV file. Triggers background scoring for each valid paper.
+
+**Authentication**: Required  
+**Roles**: User
+
+---
+
+### Input Structure
+
+**Body** (multipart/form-data):
+- `file`: CSV file (required)
+
+**CSV Format**:
+- Headers: `title`, `abstract`, `url` (optional)
+- Rows: One paper per row
+
+**Example CSV**:
+```csv
+title,abstract,url
+"Paper 1 Title","Abstract content 1","http://link1.com"
+"Paper 2 Title","Abstract content 2",
+```
+
+**Path Parameters**:
+- `:projectId` (string, required) — User Project ID
+
+---
+
+### Output Structure
+
+**Success Response** (202 Accepted):
+```typescript
+{
+  success: true;
+  data: {
+    processedCount: number;  // Number of papers successfully queued
+    failedCount: number;     // Number of rows that failed validation
+    message: string;         // e.g., "Queued 10 papers for scoring"
+    errors?: Array<{ row: number; reason: string }>; // Optional details on failures
+  };
+}
+```
+
+---
+
+### Sample Request
+
+```bash
+POST /v1/user-projects/proj_123/papers/bulk-upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+form-data:
+  file: [papers.csv]
+```
+
+---
+
+### Business Logic Notes
+
+- **CSV Parsing**: Parses the file and validates each row.
+- **Batch Processing**: Valid papers are created in `candidate_papers` table.
+- **Async Scoring**: Each created paper triggers a `PAPER_SCORING` background job.
+- **Error Handling**: Skips invalid rows and reports them in the response (partial success).
+- **Credit Check**: Credits are checked per paper in the worker.
+
+---
+
+
+---
+
+## GET /v1/user-projects/papers/bulk-upload-template
+
+**Description**: Download a blank CSV template for bulk paper uploading.
+
+**Authentication**: Required  
+**Roles**: User
+
+---
+
+### Output Structure
+
+**Success Response** (200 OK):
+- **Content-Type**: `text/csv`
+- **Content-Disposition**: `attachment; filename="papers_template.csv"`
+- **Body**:
+  ```csv
+  title,abstract,url
+  ```
+
+---
+
+### Sample Request
+
+```bash
+GET /v1/user-projects/papers/bulk-upload-template
+Authorization: Bearer <token>
+```
+
+---
+
+### Sample Response
+
+The response body will be a CSV file with headers only:
+```csv
+title,abstract,url
+```
 
 ---
 
@@ -2012,9 +2174,63 @@ Content-Type: application/json
 
 ---
 
-### POST /v1/stages/queries
+# 4. Background Jobs
 
-**Description**: Stage 2 - Generate optimized search queries from Intent Decomposition output.
+---
+
+## POST /v1/jobs/:jobId/resume
+
+**Description**: Resume a failed background job (e.g., after credit recharge).
+
+**Authentication**: Required  
+**Roles**: User (owner of job)
+
+---
+
+### Input Structure
+
+**Path Parameters**:
+- `:jobId` (string, required) — Background Job ID
+
+---
+
+### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string; // "Job resumed successfully"
+  };
+}
+```
+
+---
+
+### Sample Request
+
+```bash
+POST /v1/jobs/job_12345/resume
+Authorization: Bearer <token>
+```
+
+### Business Logic Notes
+
+- **Validation**: Checks if job exists and belongs to user.
+- **Fail Check**: Only jobs with status `FAILED` or `FAILED_NO_CREDITS` can be resumed.
+- **Queue Logic**: Re-adds the job to the appropriate BullMQ queue (project or paper).
+- **Status Update**: Updates DB status to `PENDING`.
+
+---
+
+# 5. LLM Services (Stages)
+
+---
+
+### POST /v1/stages/intent
+
+**Description**: Stage 1 - Decompose a research topic abstract into its core components.
 
 **Authentication**: Required (JWT)
 **Roles**: Authenticated User
@@ -2121,17 +2337,97 @@ Content-Type: application/json
 
 ---
 
+
+---
+
+### POST /v1/stages/score
+
+**Description**: Perform comprehensive scoring of a candidate paper against the user's research (Stage 5+6+7 merged).
+
+**Authentication**: Required (JWT)
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  userAbstract: string;       // User's research abstract
+  candidateAbstract: string;  // Candidate paper abstract to evaluate
+  projectId?: string;         // Optional: for tracking LLM usage per project
+  paperId?: string;           // Optional: for tracking LLM usage per paper
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    stage: "score",
+    version: "1.0",
+    generatedAt: string; // ISO 8601 timestamp
+    output: {
+        // Similarity Metrics
+        semantic_similarity: number;  // 0.0 to 1.0
+        problem_overlap: string;      // 'none', 'low', 'medium', 'high'
+        method_overlap: string;       // 'none', 'low', 'medium', 'high'
+        domain_overlap: string;       // 'none', 'low', 'medium', 'high'
+        constraint_overlap: string;   // 'none', 'low', 'medium', 'high'
+
+        // Category 1: Direct Competitor
+        c1_score: number;             // 0-10
+        c1_justification: string;
+        c1_strengths: string[];
+        c1_weaknesses: string[];
+
+        // Category 2: Supporting Work
+        c2_score: number;             // 0-10
+        c2_justification: string;
+        c2_contribution_type: string;
+        c2_relevance_areas: string[];
+        c2_strengths: string[];
+        c2_weaknesses: string[];
+
+        // Gap Analysis
+        research_gaps: string[];
+        user_novelty: string;
+        candidate_advantage: string;  // distinct advantages of candidate paper
+    };
+    usage: {
+      modelName: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      totalCostUsd: number;
+    };
+  };
+}
+```
+
+---
+
 #### Sample Request
 
 ```bash
-PATCH /v1/user-projects/proj_550e8400-e29b-41d4-a716-446655440000/papers/paper_123e4567-e89b-12d3-a456-426614174000
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+POST /v1/stages/score
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "paperTitle": "Attention Is All You Need (Updated)",
-  "paperAbstract": "Updated abstract with more details about the Transformer architecture...",
-  "paperDownloadLink": "https://arxiv.org/pdf/1706.03762v7"
+  "userAbstract": "We propose a new transformer-based architecture for...",
+  "candidateAbstract": "This paper introduces a recurrent neural network method...",
+  "projectId": "proj_123",
+  "paperId": "paper_456"
 }
 ```
 
@@ -2139,67 +2435,30 @@ Content-Type: application/json
 
 #### Sample Response
 
-**Success (200 OK)**:
 ```json
 {
   "success": true,
   "data": {
-    "paper": {
-      "id": "paper_123e4567-e89b-12d3-a456-426614174000",
-      "projectId": "proj_550e8400-e29b-41d4-a716-446655440000",
-      "paperTitle": "Attention Is All You Need (Updated)",
-      "paperAbstract": "Updated abstract with more details about the Transformer architecture...",
-      "paperDownloadLink": "https://arxiv.org/pdf/1706.03762v7",
-      "isProcessedByLlm": false,
-      "semanticSimilarity": null,
-      "similarityModelName": null,
-      "problemOverlap": null,
-      "domainOverlap": null,
-      "constraintOverlap": null,
-      "c1Score": null,
-      "c1Justification": null,
-      "c1Strengths": null,
-      "c1Weaknesses": null,
-      "c2Score": null,
-      "c2Justification": null,
-      "c2ContributionType": null,
-      "c2RelevanceAreas": null,
-      "researchGaps": null,
-      "userNovelty": null,
-      "modelUsed": null,
-      "inputTokensUsed": null,
-      "outputTokensUsed": null,
-      "processedAt": null,
-      "createdAt": "2025-12-31T15:00:00.000Z",
-      "updatedAt": "2025-12-31T16:30:00.000Z"
-    }
-  }
-}
-```
-
----
-
-#### Error Cases
-
-| Status | Error Code | Description | Example |
-|--------|------------|-------------|---------|
-| 400 | `VALIDATION_ERROR` | Invalid input data | Title too long |
-| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
-| 403 | `FORBIDDEN` | Not project owner | User doesn't own this project |
-| 404 | `NOT_FOUND` | Paper or project not found | Invalid paper ID |
-| 500 | `INTERNAL_ERROR` | Server error | Database error |
-
-**Sample Error Response**:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Paper title must be between 1 and 500 characters",
-    "details": {
-      "field": "paperTitle",
-      "constraint": "maxLength",
-      "value": 500
+    "stage": "score",
+    "output": {
+      "semantic_similarity": 0.85,
+      "problem_overlap": "high",
+      "method_overlap": "low",
+      "domain_overlap": "high",
+      "constraint_overlap": "medium",
+      "c1_score": 6.5,
+      "c1_justification": "Addresses same problem but uses different method",
+      "c1_strengths": ["Robust evaluation"],
+      "c1_weaknesses": ["High computational cost"],
+      "c2_score": 8.0,
+      "c2_justification": "Provides essential theoretical foundation",
+      "c2_contribution_type": "theoretical_foundation",
+      "c2_relevance_areas": ["Attention mechanisms"],
+      "c2_strengths": ["Clear definitions", "Strong axioms"],
+      "c2_weaknesses": ["Limited experimental validation"],
+      "research_gaps": ["Does not address latency constraints"],
+      "user_novelty": "Our approach optimizes for low-latency edge deployment",
+      "candidate_advantage": "Higher accuracy on unbounded resources"
     }
   }
 }
@@ -2292,27 +2551,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | 500 | `INTERNAL_ERROR` | Server error | Database error |
 
 ---
-
-#### Diagrams
-
-**Diagrams**: Not required (simple CRUD operation)
-
----
-
-#### Business Logic Notes
-
-- Permanently deletes the paper from the database
-- User must own the project to delete papers
-- Paper must belong to the specified project
-- Cannot be undone
-
----
-
-
-
-
-
-
 
 
 

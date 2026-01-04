@@ -1,0 +1,58 @@
+@startuml project-creation-sequence
+
+title Project Creation & Initialization Sequence
+
+actor "User" as user
+participant "API Gateway\n(Routes)" as api
+participant "Auth Middleware" as auth
+participant "UserProject\nController" as controller
+participant "UserProject\nService" as service
+participant "Prisma\n(Database)" as db
+participant "Project\nWorker" as worker
+participant "Intent\nService" as intent
+participant "OpenAI\n(LLM)" as llm
+participant "Search Query\nService" as queries
+
+' --- Authentication ---
+user -> api: POST /v1/user-projects\n(projectName, userIdea)
+api -> auth: Verify JWT
+auth --> api: userId
+api -> controller: createProject(data)
+
+' --- Project Creation ---
+controller -> service: createProject(userId, data)
+service -> db: UserProject.create({ status: "PROCESSING" })
+db --> service: project (with ID)
+service --> controller: project
+
+' --- Async Job Dispatch ---
+controller -> db: BackgroundJob.create({ type: "PROJECT_INIT_INTENT" })
+db --> controller: jobId
+controller -> worker: Queue.add("PROJECT_INIT_INTENT")
+worker -> worker: Acknowledge
+controller --> user: 202 Accepted\n{ project, jobId }
+
+' --- Background Processing (Stage 1: Intent) ---
+worker -> worker: Process Job
+worker -> intent: processIntent(userIdea)
+intent -> llm: Analyze Abstract & Extract Components
+llm --> intent: IntentOutput (problem, methods, etc.)
+intent --> worker: IntentResult
+
+' --- Update Project (Stage 1 Results) ---
+worker -> db: UserProject.update({\n  problemStatement,\n  methodologies,\n  ...\n})
+
+' --- Background Processing (Stage 2: Queries) ---
+worker -> queries: processQueries(IntentResult)
+queries -> llm: Generate Search Queries
+llm --> queries: QueriesOutput
+queries --> worker: QueriesResult
+
+' --- Finalize Project ---
+worker -> db: UserProject.update({\n  searchQueries,\n  expandedKeywords,\n  status: "COMPLETED"\n})
+worker -> db: BackgroundJob.update({ status: "COMPLETED" })
+
+' --- Notification (Optional) ---
+worker -> worker: Trigger Email Notification
+
+@enduml

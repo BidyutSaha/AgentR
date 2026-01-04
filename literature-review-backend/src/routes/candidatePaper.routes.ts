@@ -5,12 +5,38 @@ import {
     handleCreateCandidatePaper,
     handleGetCandidatePapers,
     handleGetCandidatePaperById,
+    handleBulkUploadCandidatePapers,
+    handleGetBulkUploadTemplate,
 } from '../controllers/candidatePaper.controller';
+import { upload } from '../middlewares/upload.middleware';
 import {
     createCandidatePaperSchema,
 } from '../services/candidatePaper/candidatePaper.schema';
 
 const router = Router();
+
+/**
+ * @route   GET /v1/user-projects/papers/bulk-upload-template
+ * @desc    Download CSV template for bulk upload
+ * @access  Protected
+ */
+router.get(
+    '/papers/bulk-upload-template',
+    authenticate,
+    handleGetBulkUploadTemplate
+);
+
+/**
+ * @route   POST /v1/user-projects/:projectId/papers/bulk-upload
+ * @desc    Bulk upload papers via CSV
+ * @access  Protected
+ */
+router.post(
+    '/:projectId/papers/bulk-upload',
+    authenticate,
+    upload.single('file'),
+    handleBulkUploadCandidatePapers
+);
 
 /**
  * @route   POST /v1/user-projects/:projectId/papers

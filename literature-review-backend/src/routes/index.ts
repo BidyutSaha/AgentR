@@ -11,6 +11,8 @@ import systemConfigRoutes from './systemConfig.routes';
 import adminCreditsRoutes from './adminCredits.routes';
 import creditsRoutes from './credits.routes';
 
+import jobRoutes from './jobs.routes';
+
 const router = Router();
 
 // Mount routes
@@ -20,6 +22,7 @@ router.use('/v1/user-projects', userProjectRoutes);
 router.use('/v1/user-projects', candidatePaperRoutes); // Nested routes for papers
 router.use('/v1/papers', papersRoutes); // Direct routes for papers
 router.use('/v1/stages', stagesRoutes);
+router.use('/v1/jobs', jobRoutes); // Background Jobs
 router.use('/v1/llm-usage', llmUsageRoutes); // LLM usage tracking
 router.use('/v1/admin/model-pricing', modelPricingRoutes); // Admin-only model pricing management
 router.use('/v1/admin/system-config', systemConfigRoutes); // Admin-only system configuration

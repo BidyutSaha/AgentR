@@ -43,6 +43,7 @@ export const updateCandidatePaperSchema = z.object({
     similarityModelName: z.string().optional(),
 
     problemOverlap: z.string().optional(),
+    methodOverlap: z.string().optional(), // Added
     domainOverlap: z.string().optional(),
     constraintOverlap: z.string().optional(),
 
@@ -55,9 +56,12 @@ export const updateCandidatePaperSchema = z.object({
     c2Justification: z.string().optional(),
     c2ContributionType: z.string().optional(),
     c2RelevanceAreas: z.union([z.string(), z.array(z.string())]).optional(),
+    c2Strengths: z.union([z.string(), z.array(z.string())]).optional(), // Added
+    c2Weaknesses: z.union([z.string(), z.array(z.string())]).optional(), // Added
 
     researchGaps: z.union([z.string(), z.array(z.string())]).optional(),
     userNovelty: z.string().optional(),
+    candidateAdvantage: z.string().optional(), // Added
 
     modelUsed: z.string().optional(),
     inputTokensUsed: z.number().int().optional(),

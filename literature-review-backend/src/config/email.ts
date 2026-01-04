@@ -136,4 +136,64 @@ export const emailTemplates = {
       Visit your dashboard: ${config.frontendUrl}/dashboard
     `,
   }),
+
+  projectInitComplete: (firstName: string, projectName: string) => ({
+    subject: `Project Ready: ${projectName}`,
+    html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4F46E5;">Project Initialized 🚀</h2>
+          <p>Hi ${firstName},</p>
+          <p>Good news! Your project "<strong>${projectName}</strong>" has been successfully initialized.</p>
+          <p>We have completed the <strong>Intent Analysis</strong> and generated optimized <strong>Search Queries</strong>.</p>
+          <p>You can now start adding research papers to be analyzed.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${config.frontendUrl}/projects" 
+               style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              View Project
+            </a>
+          </div>
+        </div>
+      `,
+    text: `
+        Project Initialized: ${projectName}
+        
+        Hi ${firstName},
+        
+        Your project "${projectName}" is ready with Intent Analysis and Search Queries.
+        
+        Log in to start adding papers: ${config.frontendUrl}/projects
+      `
+  }),
+
+  projectScoringComplete: (firstName: string, projectName: string, paperCount: number) => ({
+    subject: `Analysis Complete: ${projectName}`,
+    html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4F46E5;">Analysis Complete ✅</h2>
+          <p>Hi ${firstName},</p>
+          <p>We have finished scoring <strong>${paperCount} papers</strong> for your project "<strong>${projectName}</strong>".</p>
+          <p>The AI has analyzed:</p>
+          <ul>
+            <li>Relevance to your research</li>
+            <li>Methodological strengths & weaknesses</li>
+            <li>Research gaps</li>
+          </ul>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${config.frontendUrl}/projects" 
+               style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              View Results
+            </a>
+          </div>
+        </div>
+      `,
+    text: `
+        Analysis Complete: ${projectName}
+        
+        Hi ${firstName},
+        
+        We have finished analyzing ${paperCount} papers for your project "${projectName}".
+        
+        Log in to view results: ${config.frontendUrl}/projects
+      `
+  })
 };
