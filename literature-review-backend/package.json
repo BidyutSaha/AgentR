@@ -8,7 +8,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:backup": "tsx scripts/manage-db.ts backup",
+    "db:restore": "tsx scripts/manage-db.ts restore",
+    "db:list-backups": "tsx scripts/manage-db.ts list"
   },
   "keywords": [
     "literature-review",

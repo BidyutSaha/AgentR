@@ -153,6 +153,10 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Renamed "User transaction history" (Item 42) and "Global transaction history" to "Wallet transaction history" in both `03_API.md` and `adminCredits.routes.ts`.
   - Removed duplicate Endpoint 44 (`GET /v1/credits/wallet-transaction-history`) from codebase and docs.
   - Merged Endpoint 43 (`GET /v1/credits/my-balance`) into "LLM Usage Tracking - AI Credits" section in `03_API.md`.
+- **✅ Database Backup Tools**
+  - Created automated backup/restore script (`scripts/manage-db.ts`)
+  - Added npm commands: `db:backup`, `db:restore`, `db:list-backups`
+  - Documented workflows in `05_WORKFLOWS.md`
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

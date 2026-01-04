@@ -12,6 +12,7 @@ Important workflows and processes in the Literature Review System.
 4. [Create Research Project](#create-research-project)
 5. [Literature Review Pipeline](#literature-review-pipeline)
 6. [Token Refresh](#token-refresh)
+7. [Database Management](#database-management)
 
 ---
 
@@ -401,6 +402,57 @@ When access token expires, use refresh token to get new tokens without re-login.
 - Refresh tokens stored in database for tracking
 - Refresh tokens can be revoked (e.g., on password change)
 - Token reuse detection (future enhancement)
+
+---
+
+## Database Management
+
+### Overview
+
+Workflows for backing up and restoring the PostgreSQL database.
+
+### 1. Database Backup
+
+**Command**: `npm run db:backup`
+
+**Steps**:
+419. 1. Developer executes command in terminal
+420. 2. Script connects using Prisma Client
+421. 3. Script fetches all data from all tables
+422. 4. Data serialized to JSON format
+423. 5. JSON backup file created in `backups/` directory
+424.    - Filename format: `backup-{timestamp}.json`
+
+**When to use**:
+- Before major schema migrations
+- Before deploying new features
+- Daily/weekly scheduled backups
+
+### 2. Database Restore
+
+**Command**: `npm run db:restore -- <path/to/file>`
+
+**Steps**:
+1. Developer executes command with backup file path
+2. Script parses `DATABASE_URL`
+3. **WARNING**: This action overwrites existing data
+4. Script parses JSON file
+5. Database data restored:
+   - Existing data cleared (truncation)
+   - New data inserted in dependency order
+
+**When to use**:
+- Recovering from accidental data deletion
+- Setting up a development machine with production data
+- Rolling back failed migrations
+
+### 3. List Backups
+
+**Command**: `npm run db:list-backups`
+
+**Steps**:
+1. Lists all `.json` files in `backups/` directory
+2. Useful for finding the most recent backup file to restore
 
 ---
 
