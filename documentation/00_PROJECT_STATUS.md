@@ -157,6 +157,10 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Created automated backup/restore script (`scripts/manage-db.ts`)
   - Added npm commands: `db:backup`, `db:restore`, `db:list-backups`
   - Documented workflows in `05_WORKFLOWS.md`
+- **✅ ACID Compliance for Billing**
+  - Refactored `logLlmUsage` to use `prisma.$transaction`
+  - Ensures atomic execution of Usage Logging + Credit Deduction
+  - Eliminated potential race conditions or inconsistent states during billing
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

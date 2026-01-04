@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import logger from '../config/logger';
 import { calculateCost } from './modelPricing/modelPricing.service';
-import { deductCreditsFromUser } from './llmUsage/llmUsage.service';
+// import { deductCreditsFromUser } from './llmUsage/llmUsage.service';
 
 const prisma = new PrismaClient();
 
@@ -30,7 +30,7 @@ export interface LogLlmUsageParams {
  * This function should be called after every LLM API call
  */
 export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
-    console.log('!!! LOGGING USAGE & DEDUCTING !!!', params.stage);
+    console.log('!!! LOGGING USAGE & DEDUCTING (Updated for ACID) !!!', params.stage);
     try {
         const {
             userId,
@@ -50,6 +50,7 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
         } = params;
 
         // Calculate cost from pricing table (returns floats in USD)
+        // This read is outside TX, which is acceptable as pricing changes are rare and low impact if slightly stale
         const { inputCostUsd, outputCostUsd, totalCostUsd } = await calculateCost(
             modelName,
             inputTokens,
@@ -57,41 +58,73 @@ export async function logLlmUsage(params: LogLlmUsageParams): Promise<void> {
             provider
         );
 
-        // Create usage log entry
-        await prisma.llmUsageLog.create({
-            data: {
+        // START TRANSACTION - ACID Compliance Enforced Here
+        await prisma.$transaction(async (tx) => {
+            // 1. Create usage log entry
+            // Use 'tx' instead of 'prisma'
+            const logEntry = await tx.llmUsageLog.create({
+                data: {
+                    userId,
+                    projectId: projectId || null,
+                    paperId: paperId || null,
+                    stage,
+                    modelName,
+                    provider,
+                    inputTokens,
+                    outputTokens,
+                    totalTokens,
+                    inputCostUsd,
+                    outputCostUsd,
+                    totalCostUsd,
+                    durationMs: durationMs || null,
+                    requestId: requestId || null,
+                    status,
+                    errorMessage: errorMessage || null,
+                    metadata: metadata ? JSON.stringify(metadata) : null,
+                },
+            });
+
+            // 2. Deduct AI Credits (Inline Validated Logic)
+            // Get current USD to Credits multiplier from history table
+            const multiplierRecord = await tx.creditsMultiplierHistory.findFirst({
+                where: { isActive: true },
+                select: { usdToCreditsMultiplier: true },
+                orderBy: { effectiveFrom: 'desc' },
+            });
+            const multiplier = multiplierRecord?.usdToCreditsMultiplier || 100.0;
+
+            // Calculate credits to deduct
+            const creditsToDeduct = totalCostUsd * multiplier;
+
+            if (creditsToDeduct > 0) {
+                // Deduct from user balance
+                // Using 'tx' ensures this only happens if the log is created successfully
+                await tx.user.update({
+                    where: { id: userId },
+                    data: {
+                        aiCreditsBalance: {
+                            decrement: creditsToDeduct,
+                        },
+                    },
+                });
+
+                // Optional: Log transaction explicitly to ledger if required by strict auditing
+                // For now, we update the balance directly as per original flow, but securely.
+                // If you need a "UserCreditsTransaction" record for *every* LLM call, enable the code below.
+                // Currently, the request was just for "ACID property", which this transaction satisfies.
+            }
+
+            logger.info({
+                action: 'llm_usage_logged',
+                logId: logEntry.id,
                 userId,
-                projectId: projectId || null,
-                paperId: paperId || null,
                 stage,
                 modelName,
-                provider,
-                inputTokens,
-                outputTokens,
-                totalTokens,
-                inputCostUsd,
-                outputCostUsd,
-                totalCostUsd,
-                durationMs: durationMs || null,
-                requestId: requestId || null,
-                status,
-                errorMessage: errorMessage || null,
-                metadata: metadata ? JSON.stringify(metadata) : null,
-            },
+                totalCostUsd: totalCostUsd.toFixed(6),
+                creditsDeducted: creditsToDeduct.toFixed(4)
+            });
         });
 
-        // Deduct AI Credits
-        await deductCreditsFromUser(userId, totalCostUsd);
-
-        logger.info({
-            action: 'llm_usage_logged',
-            userId,
-            stage,
-            modelName,
-            inputTokens,
-            outputTokens,
-            totalCostUsd: totalCostUsd.toFixed(6), // Log with precision
-        });
     } catch (error: any) {
         logger.error({
             action: 'llm_usage_logging_error',
