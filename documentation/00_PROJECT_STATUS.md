@@ -167,6 +167,10 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Added fields: `expandedKeywords`, `searchQueries`.
   - Added `ProcessingStatus` enum for tracking stage status (Evaluated, Failed, etc.).
   - Updated `04_DATABASE.md` with new schema.
+- **✅ Enhanced Search Query Generation (Stage 2)**
+  - Updated prompt to generate **10 distinct general-purpose search queries** (Google Scholar, IEEE, ACM optimized).
+  - Replaced engine-specific queries with a consolidated list of highly efficient query combinations.
+  - Updated API Schema and Documentation (`03_API.md`) to reflect the new output format (`searchQueries` array).
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

@@ -21,10 +21,7 @@ export const queriesOutputSchema = z.object({
     abstract: z.string(),
     booleanQuery: z.string(),
     expandedKeywords: z.array(z.string()),
-    engineQueries: z.object({
-        arxiv: z.string(),
-        semanticScholar: z.string(),
-    }),
+    searchQueries: z.array(z.string()),
 });
 
 export type QueriesOutput = z.infer<typeof queriesOutputSchema>;

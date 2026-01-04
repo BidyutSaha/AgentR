@@ -2012,6 +2012,115 @@ Content-Type: application/json
 
 ---
 
+### POST /v1/stages/queries
+
+**Description**: Stage 2 - Generate optimized search queries from Intent Decomposition output.
+
+**Authentication**: Required (JWT)
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Request Body**:
+```typescript
+{
+  abstract: string;
+  problem: string;
+  methodologies: string[];
+  applicationDomains: string[];
+  constraints: string[];
+  contributionTypes: string[];
+  keywords_seed: string[];
+  projectId?: string; // Optional: logs usage to project
+  paperId?: string;   // Optional: logs usage to paper
+}
+```
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    stage: "queries",
+    version: "1.0",
+    generatedAt: string; // ISO 8601 timestamp
+    output: {
+      abstract: string;
+      booleanQuery: string;        // Master Boolean query
+      expandedKeywords: string[];  // 10-15 expanded terms
+      searchQueries: string[];     // Exactly 10 distinct optimized search query combinations
+    };
+    usage: {
+      modelName: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      totalCostUsd: number;
+    };
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+POST /v1/stages/queries
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "abstract": "This research...",
+  "problem": "Manual literature review...",
+  "methodologies": ["Deep Learning", "LLMs"],
+  "applicationDomains": ["Academic Research"],
+  "constraints": ["Low cost", "High accuracy"],
+  "contributionTypes": ["System", "Methodology"],
+  "keywords_seed": ["literature review", "NLP"]
+}
+```
+
+---
+
+#### Sample Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "stage": "queries",
+    "output": {
+      "booleanQuery": "(\"literature review\" OR \"systematic review\") AND (\"LLM\" OR \"transformers\")",
+      "expandedKeywords": ["bibliometrics", "citation analysis", "GPT-3"],
+      "searchQueries": [
+        "LLM based automated literature review system",
+        "Deep learning for academic paper screening",
+        "NLP techniques for systematic review automation",
+        "Cost-effective large language models for text analysis",
+        "High accuracy automated citation screening tools",
+        "Transformer models in academic search information retrieval",
+        "Generative AI for summarization of scientific literature",
+        "Automation of systematic reviews using GPT models",
+        "Semantic search algorithms for academic databases",
+        "Optimization of literature review workflows with AI"
+      ]
+    }
+  }
+}
+```
+
+---
+
 #### Sample Request
 
 ```bash
