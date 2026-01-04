@@ -85,11 +85,32 @@ model RefreshToken {
 // USER PROJECTS TABLE
 // ============================================================================
 
+enum ProcessingStatus {
+  NOT_INITIATED               @map("not_initiated")
+  EVALUATED                   @map("evaluated")
+  UNDER_PROCESSING            @map("under_processing")
+  FAILED_INSUFFICIENT_CREDITS @map("failed_non_credit_left")
+  FAILED_OTHER                @map("failed_other_reason")
+}
+
 model UserProject {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   projectName String   @map("project_name")
   userIdea    String   @map("user_idea") @db.Text // Text field for unlimited length
+
+  // Stage 1: Intent Decomposition
+  methodologies         String[]         @default([]) @map("methodologies")
+  applicationDomains    String[]         @default([]) @map("application_domains")
+  constraints           String[]         @default([]) @map("constraints")
+  contributionTypes     String[]         @default([]) @map("contribution_types")
+  keywordsSeed          String[]         @default([]) @map("keywords_seed")
+  intentProcessedStatus ProcessingStatus @default(NOT_INITIATED) @map("intent_processed_status")
+
+  // Stage 2: Query Generation
+  expandedKeywords           String[]         @default([]) @map("expanded_keywords")
+  searchQueries              Json?            @map("search_queries")
+  searchQueryProcessedStatus ProcessingStatus @default(NOT_INITIATED) @map("search_query_processing_status")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

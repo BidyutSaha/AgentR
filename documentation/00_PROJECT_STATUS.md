@@ -161,6 +161,12 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Refactored `logLlmUsage` to use `prisma.$transaction`
   - Ensures atomic execution of Usage Logging + Credit Deduction
   - Eliminated potential race conditions or inconsistent states during billing
+- **✅ Pipeline Schema Updates**
+  - Updated `UserProject` schema to include fields for Stage 1 (Intent) and Stage 2 (Query Gen).
+  - Added fields: `methodologies`, `applicationDomains`, `constraints`, `contributionTypes`, `keywordsSeed`.
+  - Added fields: `expandedKeywords`, `searchQueries`.
+  - Added `ProcessingStatus` enum for tracking stage status (Evaluated, Failed, etc.).
+  - Updated `04_DATABASE.md` with new schema.
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

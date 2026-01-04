@@ -227,6 +227,15 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 | user_id | UUID | NOT NULL, FK → users(id) | Project owner |
 | project_name | VARCHAR(255) | NOT NULL | Project name/title |
 | user_idea | TEXT | NOT NULL | Research idea/abstract (unlimited length) |
+| methodologies | TEXT[] | DEFAULT [] | Methodologies extracted from Stage 1 |
+| application_domains | TEXT[] | DEFAULT [] | Application domains from Stage 1 |
+| constraints | TEXT[] | DEFAULT [] | Constraints from Stage 1 |
+| contribution_types | TEXT[] | DEFAULT [] | Contribution types from Stage 1 |
+| keywords_seed | TEXT[] | DEFAULT [] | Initial keywords from Stage 1 |
+| intent_processed_status | ENUM | DEFAULT 'NOT_INITIATED' | Status of Intent Decomposition stage |
+| expanded_keywords | TEXT[] | DEFAULT [] | Expanded keywords from Stage 2 |
+| search_queries | JSONB | NULL | Generated search queries from Stage 2 |
+| search_query_processing_status | ENUM | DEFAULT 'NOT_INITIATED' | Status of Query Generation stage |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Project creation time |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update time |
 
@@ -245,6 +254,18 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 - `user_idea` field supports unlimited text length
 - Projects are automatically deleted when user is deleted (CASCADE)
 - `updated_at` is automatically updated on any change
+- Arrays (methodologies, etc.) default to empty lists
+- `search_queries` stores detailed query logic in JSON format
+
+#### Enums: ProcessingStatus
+
+| Value | Description |
+|-------|-------------|
+| `NOT_INITIATED` | Stage has not started |
+| `EVALUATED` | Stage completed successfully |
+| `UNDER_PROCESSING` | Stage is currently running |
+| `FAILED_INSUFFICIENT_CREDITS` | Call failed due to low credits |
+| `FAILED_OTHER` | Call failed due to server error or API issue |
 
 ---
 
