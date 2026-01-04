@@ -108,6 +108,7 @@ model UserProject {
   intentProcessedStatus ProcessingStatus @default(NOT_INITIATED) @map("intent_processed_status")
 
   // Stage 2: Query Generation
+  booleanQuery               String?          @map("boolean_query") @db.Text
   expandedKeywords           String[]         @default([]) @map("expanded_keywords")
   searchQueries              Json?            @map("search_queries")
   searchQueryProcessedStatus ProcessingStatus @default(NOT_INITIATED) @map("search_query_processing_status")

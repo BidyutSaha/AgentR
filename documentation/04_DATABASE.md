@@ -234,6 +234,7 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 | keywords_seed | TEXT[] | DEFAULT [] | Initial keywords from Stage 1 |
 | intent_processed_status | ENUM | DEFAULT 'NOT_INITIATED' | Status of Intent Decomposition stage |
 | expanded_keywords | TEXT[] | DEFAULT [] | Expanded keywords from Stage 2 |
+| boolean_query | TEXT | NULL | Master Boolean query from Stage 2 |
 | search_queries | JSONB | NULL | Generated search queries from Stage 2 |
 | search_query_processing_status | ENUM | DEFAULT 'NOT_INITIATED' | Status of Query Generation stage |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Project creation time |
