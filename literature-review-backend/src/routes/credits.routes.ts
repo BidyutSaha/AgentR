@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { authenticate } from '../middlewares/auth';
 import { handleGetMyBalance } from '../controllers/credits.controller';
+import { authenticate } from '../middlewares/auth';
+import { Router } from 'express';
 
 const router = Router();
 
@@ -14,5 +14,7 @@ router.get(
     authenticate,
     handleGetMyBalance
 );
+
+
 
 export default router;

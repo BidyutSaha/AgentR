@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: 2026-01-03
+**Last Updated**: 2026-01-04
 
 ---
 
@@ -136,6 +136,23 @@ Complete production-ready codebase cleanup and bring project into full complianc
   - Provides total cost, project-wise breakdown, and paper-wise breakdown
   - Updated service logic to aggregate costs from usage logs
   - Updated API documentation
+- **✅ Added User Credit Transaction History API**
+  - Added `GET /v1/credits/history` for users to view their transaction history
+  - Updated `getUserTransactionHistory` service to support date filtering
+  - Updated API documentation
+- **✅ Added Global Admin Transaction History API**
+  - Added `GET /v1/admin/credits/transactions` to view credits ledger for all users
+  - Replaces `all-users-credits` billing summary with actual transaction history
+  - Supports date filtering and pagination
+  - Updated `llmUsage` and `credits` routes to reflect changes
+  - Provided `GET /v1/llm-usage/wallet-transaction-history` alias for user transaction history
+
+### 2026-01-04
+- **✅ API Documentation Updates**
+  - Renamed "Credit usage history" and "Transaction history" endpoints to "Wallet transaction history" in `03_API.md` (Items 28 and 44) to unify terminology.
+  - Renamed "User transaction history" (Item 42) and "Global transaction history" to "Wallet transaction history" in both `03_API.md` and `adminCredits.routes.ts`.
+  - Removed duplicate Endpoint 44 (`GET /v1/credits/wallet-transaction-history`) from codebase and docs.
+  - Merged Endpoint 43 (`GET /v1/credits/my-balance`) into "LLM Usage Tracking - AI Credits" section in `03_API.md`.
 
 ### 2026-01-01
 - **✅ Refactored LLM Pricing to USD (Float)**

@@ -49,7 +49,8 @@ Complete API reference for the Literature Review System.
 ### LLM Usage Tracking - AI Credits (Protected)
 26. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
 27. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
-28. [GET /v1/llm-usage/admin/all-users-credits](#get-v1llm-usageadminall-users-credits) - Get all users billing (Credits, admin)
+28. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
+29. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
 
 ### Model Pricing Management (Admin Only)
 29. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
@@ -71,10 +72,9 @@ Complete API reference for the Literature Review System.
 39. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
 40. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
 41. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
-42. [GET /v1/admin/credits/user/:userId/transactions](#get-v1admincreditsuseruseridtransactions) - Get user transaction history
+42. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
 
-### Credits Management (User)
-43. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
+
 
 ---
 
@@ -2717,12 +2717,60 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/llm-usage/admin/all-users-credits
+    };
+  }
+}
+```
 
-**Description**: Get aggregated billing data for all users in **AI Credits**.
+---
+
+
+
+### GET /v1/llm-usage/wallet-transaction-history
+
+**Description**: Wallet transaction history.
 
 **Authentication**: Required (JWT)  
-**Roles**: Admin
+**Roles**: User
+
+---
+
+#### Input Structure
+
+**Query Parameters**:
+- `limit` (number, optional) — Max records to return (default: 50)
+- `startDate` (string, optional) — Filter start date (ISO 8601)
+- `endDate` (string, optional) — Filter end date (ISO 8601)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: Array<{
+    id: string;
+    transactionType: string;
+    amount: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    reason: string | null;
+    description: string | null;
+    createdAt: string;
+  }>;
+}
+```
+
+---
+
+### GET /v1/credits/my-balance
+
+**Description**: Get current logged-in user's credit balance.
+
+**Authentication**: Required (JWT)  
+**Roles**: User
 
 ---
 
@@ -2733,15 +2781,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   success: true;
   data: {
-    users: Array<{
-      user: { id: string; email: string; firstName: string; lastName: string };
-      totalCalls: number;
-      totalTokens: number;
-      totalCostCredits: number;
-    }>;
-    totalUsers: number;
-    grandTotalCostCredits: number;
-  }
+    balance: number;
+  };
 }
 ```
 
@@ -3166,9 +3207,9 @@ Content-Type: application/json
 
 ---
 
-### GET /v1/admin/credits/user/:userId/transactions
+### GET /v1/admin/credits/user/:userId/wallet-transaction-history
 
-**Description**: Get full transaction history for a user.
+**Description**: Wallet transaction history (user).
 
 **Authentication**: Required (JWT)  
 **Roles**: Admin
@@ -3221,9 +3262,6 @@ Content-Type: application/json
       "amount": 1000,
       "balanceBefore": 0,
       "balanceAfter": 1000,
-      "reason": "Default credits on signup",
-      "description": "New user signup bonus: 1000 credits",
-      "adminId": null,
       "createdAt": "2026-01-01T10:00:00.000Z"
     }
   ]
@@ -3232,14 +3270,21 @@ Content-Type: application/json
 
 ---
 
-## Credits Management (User)
+### GET /v1/admin/credits/wallet-transaction-history
 
-### GET /v1/credits/my-balance
-
-**Description**: Get current logged-in user's credit balance.
+**Description**: Wallet transaction history (global).
 
 **Authentication**: Required (JWT)  
-**Roles**: User
+**Roles**: Admin
+
+---
+
+#### Input Structure
+
+**Query Parameters**:
+- `limit` (number, optional) — Max records to return (default: 50)
+- `startDate` (string, optional) — Filter start date (ISO 8601)
+- `endDate` (string, optional) — Filter end date (ISO 8601)
 
 ---
 
@@ -3249,13 +3294,31 @@ Content-Type: application/json
 ```typescript
 {
   success: true;
-  data: {
-    balance: number;
-  };
+  data: Array<{
+    id: string;
+    transactionType: string;
+    amount: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    reason: string | null;
+    description: string | null;
+    adminId: string | null;
+    createdAt: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+    };
+  }>;
 }
 ```
 
 ---
+
+
+
+
 
 ## Common Error Response Format
 

@@ -5,6 +5,7 @@ import {
     handleDeductCredits,
     handleGetUserCredits,
     handleGetUserTransactions,
+    handleGetAllTransactions,
 } from '../controllers/credits.controller';
 
 const router = Router();
@@ -46,15 +47,27 @@ router.get(
 );
 
 /**
- * @route   GET /v1/admin/credits/user/:userId/transactions
- * @desc    Get user's transaction history
+ * @route   GET /v1/admin/credits/user/:userId/wallet-transaction-history
+ * @desc    Get user's wallet transaction history
  * @access  Admin
  */
 router.get(
-    '/user/:userId/transactions',
+    '/user/:userId/wallet-transaction-history',
     authenticate,
     // TODO: Add admin middleware here
     handleGetUserTransactions
+);
+
+/**
+ * @route   GET /v1/admin/credits/wallet-transaction-history
+ * @desc    Get all wallet transaction history (global)
+ * @access  Admin
+ */
+router.get(
+    '/wallet-transaction-history',
+    authenticate,
+    // TODO: Add admin middleware here
+    handleGetAllTransactions
 );
 
 export default router;

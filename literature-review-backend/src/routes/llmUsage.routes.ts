@@ -6,8 +6,8 @@ import {
     handleGetProjectUsage,
     handleGetProjectUsageCredits,
     handleGetAllUsersBilling,
-    handleGetAllUsersBillingCredits,
 } from '../controllers/llmUsage.controller';
+import { handleGetMyTransactions } from '../controllers/credits.controller';
 
 const router = Router();
 
@@ -35,6 +35,20 @@ router.get(
     '/my-usage-credits',
     authenticate,
     handleGetMyUsageCredits
+);
+
+/**
+ * @route   GET /v1/llm-usage/wallet-transaction-history
+ * @desc    Get current user's wallet transaction history
+ * @access  Protected
+ * @query   limit (optional) - Max records (default: 50)
+ * @query   startDate (optional) - ISO date string
+ * @query   endDate (optional) - ISO date string
+ */
+router.get(
+    '/wallet-transaction-history',
+    authenticate,
+    handleGetMyTransactions
 );
 
 /**
@@ -77,18 +91,6 @@ router.get(
     handleGetAllUsersBilling
 );
 
-/**
- * @route   GET /v1/llm-usage/admin/all-users-credits
- * @desc    Get billing summary for all users in AI CREDITS (admin only)
- * @access  Admin
- * @query   startDate (optional) - ISO date string
- * @query   endDate (optional) - ISO date string
- */
-router.get(
-    '/admin/all-users-credits',
-    authenticate,
-    // TODO: Add admin middleware here
-    handleGetAllUsersBillingCredits
-);
+
 
 export default router;

@@ -166,9 +166,22 @@ export async function deductUserCredits(
 /**
  * Get user's transaction history
  */
-export async function getUserTransactionHistory(userId: string, limit: number = 50) {
+export async function getUserTransactionHistory(
+    userId: string,
+    limit: number = 50,
+    startDate?: Date,
+    endDate?: Date
+) {
+    const where: any = { userId };
+
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+    }
+
     const transactions = await prisma.userCreditsTransaction.findMany({
-        where: { userId },
+        where,
         orderBy: { createdAt: 'desc' },
         take: limit,
         select: {
@@ -205,4 +218,39 @@ export async function getMyCreditsBalance(userId: string) {
     return {
         balance: user.aiCreditsBalance,
     };
+}
+
+/**
+ * Get all transactions (Admin only)
+ */
+export async function getAllTransactions(
+    limit: number = 50,
+    startDate?: Date,
+    endDate?: Date
+) {
+    const where: any = {};
+
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+    }
+
+    const transactions = await prisma.userCreditsTransaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
+        },
+    });
+
+    return transactions;
 }
