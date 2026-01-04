@@ -61,6 +61,21 @@ entity "user_projects" as projects {
   * user_id : UUID <<FK>>
   * project_name : VARCHAR(255)
   * user_idea : TEXT
+  
+  ' Stage 1: Intent
+  methodologies : TEXT[]
+  application_domains : TEXT[]
+  constraints : TEXT[]
+  contribution_types : TEXT[]
+  keywords_seed : TEXT[]
+  intent_processed_status : ENUM
+  
+  ' Stage 2: Queries
+  boolean_query : TEXT
+  expanded_keywords : TEXT[]
+  search_queries : JSONB
+  search_query_processing_status : ENUM
+
   * created_at : TIMESTAMP
   * updated_at : TIMESTAMP
 }
