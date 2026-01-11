@@ -1,0 +1,134 @@
+@startuml paper-scoring-activity
+
+title Stage 3: Paper Scoring Activity Diagram
+
+start
+
+:Worker picks up\nPAPER_SCORING job;
+
+:Extract job data\n(userId, projectId, paperId);
+
+:Check if paper exists\n(Orphan Check);
+
+if (Paper exists?) then (yes)
+  :Check if project exists;
+  
+  if (Project exists?) then (yes)
+    :Check project has\nStage 1+2 results;
+    
+    if (Project ready?) then (yes)
+      :Get user credits balance;
+      
+      if (Sufficient credits?) then (yes)
+        :Build user abstract\nfrom project data;
+        
+        :Get candidate paper abstract;
+        
+        :Build LLM prompt\nfor paper scoring;
+        
+        note right
+          Prompt includes:
+          - User abstract
+          - Candidate abstract
+          - Instructions to analyze:
+            * Semantic similarity
+            * Overlap (problem, method, domain, constraint)
+            * C1 Score (competitor)
+            * C2 Score (supporting work)
+            * Research gaps
+            * User novelty
+            * Candidate advantages
+        end note
+        
+        :Call OpenAI API\n(gpt-4o model);
+        
+        if (API call successful?) then (yes)
+          :Parse JSON response;
+          
+          :Extract scoring results\n(31 fields);
+          
+          :Get token usage;
+          
+          :Calculate USD cost;
+          
+          :Get credits multiplier;
+          
+          :Calculate credits to deduct;
+          
+          partition "Atomic Transaction" {
+            :Check balance >= credits;
+            
+            if (Balance sufficient?) then (yes)
+              :Deduct credits from user;
+              
+              :Log LLM usage\n(with paper_id);
+              
+              :Commit transaction;
+            else (no)
+              :Rollback transaction;
+              
+              :Update job status\n= FAILED_NO_CREDITS;
+              
+              stop
+            endif
+          }
+          
+          :Update paper with\nscoring results;
+          
+          :Set fields:\n- semanticSimilarity\n- problemOverlap, methodOverlap\n- domainOverlap, constraintOverlap\n- c1Score, c1Justification\n- c1Strengths, c1Weaknesses\n- c2Score, c2Justification\n- c2ContributionType\n- c2RelevanceAreas\n- c2Strengths, c2Weaknesses\n- researchGaps\n- userNovelty\n- candidateAdvantage;
+          
+          :Set isProcessedByLlm = true;
+          
+          :Update job status\n= COMPLETED;
+          
+          note right
+            Paper scored successfully!
+            
+            User can now view:
+            - C1/C2 scores
+            - Overlap analysis
+            - Research gaps
+            - Novelty assessment
+          end note
+          
+          stop
+          
+        else (no - API error)
+          :Update job status = FAILED;
+          
+          :Log error details;
+          
+          stop
+        endif
+        
+      else (no - insufficient credits)
+        :Update job status\n= FAILED_NO_CREDITS;
+        
+        stop
+      endif
+      
+    else (no - project not ready)
+      :Update job status = FAILED;
+      
+      :Log: "Project Stage 1+2 required";
+      
+      stop
+    endif
+    
+  else (no - project deleted)
+    :Update job status = FAILED;
+    
+    :Log orphan warning;
+    
+    stop
+  endif
+  
+else (no - paper deleted)
+  :Update job status = FAILED;
+  
+  :Log orphan warning;
+  
+  stop
+endif
+
+@enduml

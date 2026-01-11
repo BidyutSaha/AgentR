@@ -1,0 +1,64 @@
+@startuml email-verification-activity
+
+title Email Verification Activity Diagram
+
+start
+
+:User clicks verification link\n(token);
+
+:Find verification token;
+
+if (Token found?) then (yes)
+  :Check if token used;
+  
+  if (Not used?) then (yes)
+    :Check token expiry\n(24 hours);
+    
+    if (Not expired?) then (yes)
+      :Check if user already verified;
+      
+      if (Not verified?) then (yes)
+        partition "Atomic Transaction" {
+          :Update user:\n- is_verified = true\n- email_verified_at = NOW();
+          
+          :Mark token as used\n(used_at = NOW());
+          
+          :Commit transaction;
+        }
+        
+        :Return 200 OK\n"Email verified successfully";
+        
+        note right
+          User can now login!
+          POST /v1/auth/login
+        end note
+        
+        stop
+        
+      else (yes - already verified)
+        :Return 200 OK\n"Email already verified";
+        stop
+      endif
+      
+    else (yes - expired)
+      :Return 400 Bad Request\n"Token expired.\nRequest new verification email";
+      
+      note right
+        User can request new token:
+        POST /v1/auth/resend-verification
+      end note
+      
+      stop
+    endif
+    
+  else (yes - already used)
+    :Return 400 Bad Request\n"Token already used";
+    stop
+  endif
+  
+else (no - not found)
+  :Return 400 Bad Request\n"Invalid token";
+  stop
+endif
+
+@enduml

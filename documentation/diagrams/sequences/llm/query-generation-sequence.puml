@@ -1,0 +1,162 @@
+@startuml query-generation-sequence
+
+title Stage 2: Query Generation (LLM Processing)
+
+participant "Project Worker" as Worker
+participant "LLM Service" as LLM
+participant "OpenAI API" as OpenAI
+participant "Credits Service" as Credits
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+note over Worker
+  Worker picked up PROJECT_INIT_QUERY job
+  from BullMQ queue (created by Stage 1)
+end note
+
+Worker -> Worker: Extract job data\n{userId, projectId}
+
+' Orphan check
+Worker -> Prisma: findUnique(user_projects,\n{where: {id: projectId}})
+activate Prisma
+Prisma -> DB: SELECT * FROM user_projects\nWHERE id = ?
+activate DB
+DB --> Prisma: Project with Stage 1 results
+deactivate DB
+Prisma --> Worker: {problemStatement, methodologies,\napplicationDomains, constraints,\ncontributionTypes, keywordsSeed}
+deactivate Prisma
+
+alt Project not found or Stage 1 not completed
+    Worker -> Prisma: Update job status = FAILED
+    Worker --> Worker: Exit (job failed)
+else Project exists with Stage 1 results
+    ' Credit check
+    Worker -> Prisma: findUnique(users,\n{where: {id: userId}})
+    activate Prisma
+    Prisma -> DB: SELECT ai_credits_balance\nFROM users WHERE id = ?
+    activate DB
+    DB --> Prisma: {aiCreditsBalance: 79.175}
+    deactivate DB
+    Prisma --> Worker: Balance: 79.175 credits
+    deactivate Prisma
+    
+    alt Insufficient credits
+        Worker -> Prisma: Update job status = FAILED_NO_CREDITS
+        Worker --> Worker: Exit (job failed)
+    else Sufficient credits
+        ' Build LLM prompt with Stage 1 output
+        Worker -> LLM: generateQueries(stage1Output)
+        activate LLM
+        
+        LLM -> LLM: Build prompt template
+        note right
+          System: "You are a research query generator..."
+          User: "Based on this research intent, generate search queries:"
+          
+          Input:
+          - Problem: {problemStatement}
+          - Methods: {methodologies}
+          - Domains: {applicationDomains}
+          - Constraints: {constraints}
+          - Keywords: {keywordsSeed}
+          
+          Generate:
+          1. Boolean query
+          2. Expanded keywords
+          3. Database-specific queries:
+             - Google Scholar
+             - IEEE Xplore
+             - ACM Digital Library
+             - arXiv
+          
+          Return JSON format.
+        end note
+        
+        ' Call OpenAI
+        LLM -> OpenAI: POST /v1/chat/completions\n{model: "gpt-4o", messages: [...]}
+        activate OpenAI
+        
+        OpenAI -> OpenAI: Process request
+        note right: LLM generates\ntargeted search queries
+        
+        OpenAI --> LLM: Response\n{choices, usage: {inputTokens, outputTokens}}
+        deactivate OpenAI
+        
+        LLM -> LLM: Parse JSON response
+        LLM --> Worker: {booleanQuery, expandedKeywords[],\nsearchQueries: {googleScholar, ieee, acm, arxiv},\nusage: {inputTokens: 1050, outputTokens: 520}}
+        deactivate LLM
+        
+        ' Calculate cost
+        Worker -> Credits: calculateCost(usage)
+        activate Credits
+        
+        Credits -> Prisma: Get pricing and multiplier
+        activate Prisma
+        Prisma -> DB: Get llm_model_pricing and\ncredits_multiplier_history
+        activate DB
+        DB --> Prisma: Pricing data
+        deactivate DB
+        Prisma --> Credits: {inputPrice: 2.50, outputPrice: 10.00,\nmultiplier: 1000}
+        deactivate Prisma
+        
+        Credits -> Credits: inputCost = (1050 / 1,000,000) × 2.50 = $0.002625
+        Credits -> Credits: outputCost = (520 / 1,000,000) × 10.00 = $0.00520
+        Credits -> Credits: totalCostUsd = $0.007825
+        Credits -> Credits: creditsToDeduct = 0.007825 × 1000 = 7.825
+        Credits --> Worker: {costUsd: 0.007825, credits: 7.825}
+        deactivate Credits
+        
+        ' Deduct credits (atomic transaction)
+        Worker -> Prisma: $transaction([...])
+        activate Prisma
+        note right: Atomic transaction:\n1. Deduct credits\n2. Log usage
+        
+        Prisma -> DB: BEGIN TRANSACTION
+        activate DB
+        
+        Prisma -> DB: UPDATE users\nSET ai_credits_balance = ai_credits_balance - 7.825\nWHERE id = ?
+        DB --> Prisma: Balance updated (71.35 credits)
+        
+        Prisma -> DB: INSERT INTO llm_usage_logs\n(user_id, project_id, operation_type,\nmodel_name, input_tokens, output_tokens,\ntotal_cost_usd, ...)
+        DB --> Prisma: Usage logged
+        
+        Prisma -> DB: COMMIT TRANSACTION
+        deactivate DB
+        Prisma --> Worker: Transaction successful
+        deactivate Prisma
+        
+        ' Update project with Stage 2 results
+        Worker -> Prisma: update(user_projects,\n{where: {id: projectId},\ndata: {booleanQuery, expandedKeywords,\nsearchQueries,\nsearchQueryProcessedStatus: EVALUATED}})
+        activate Prisma
+        Prisma -> DB: UPDATE user_projects\nSET boolean_query = ?,\nexpanded_keywords = ?,\nsearch_queries = ?,\nsearch_query_processing_status = 'evaluated'\nWHERE id = ?
+        activate DB
+        DB --> Prisma: Project updated
+        deactivate DB
+        Prisma --> Worker: Success
+        deactivate Prisma
+        
+        ' Update job status
+        Worker -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {status: COMPLETED}})
+        activate Prisma
+        Prisma -> DB: UPDATE background_jobs\nSET status = 'COMPLETED'\nWHERE id = ?
+        activate DB
+        DB --> Prisma: Job updated
+        deactivate DB
+        Prisma --> Worker: Success
+        deactivate Prisma
+        
+        note over Worker
+          Stage 2 completed successfully!
+          Credits deducted: 7.825
+          New balance: 71.35
+          
+          Project now has:
+          - Stage 1: Intent decomposition ✓
+          - Stage 2: Search queries ✓
+          
+          Ready for paper scoring (Stage 3)
+        end note
+    end
+end
+
+@enduml

@@ -1,0 +1,106 @@
+@startuml login-token-sequence
+
+title Login & Token Management Flow
+
+actor User
+participant "API Gateway" as API
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+User -> API: POST /v1/auth/login\n{email, password}
+activate API
+
+API -> Controller: login(req, res)
+activate Controller
+
+Controller -> Service: loginUser(email, password)
+activate Service
+
+' Find user
+Service -> Prisma: findUnique({where: {email},\ninclude: {refreshTokens: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM users\nWHERE email = ?
+activate DB
+DB --> Prisma: User record
+deactivate DB
+Prisma --> Service: User with refresh tokens
+deactivate Prisma
+
+alt User not found
+    Service --> Controller: 404 Not Found
+    Controller --> API: {success: false, error: "User not found"}
+    API --> User: 404 Not Found
+else User found
+    ' Check email verified
+    alt Email not verified
+        Service --> Controller: 401 Unauthorized
+        Controller --> API: {success: false, error: "Email not verified"}
+        API --> User: 401 Unauthorized
+    else Email verified
+        ' Check account active
+        alt Account inactive
+            Service --> Controller: 403 Forbidden
+            Controller --> API: {success: false, error: "Account inactive"}
+            API --> User: 403 Forbidden
+        else Account active
+            ' Verify password
+            Service -> Service: bcrypt.compare(password, passwordHash)
+            note right: Compare provided password\nwith stored hash
+            
+            alt Password incorrect
+                Service --> Controller: 401 Unauthorized
+                Controller --> API: {success: false, error: "Invalid credentials"}
+                API --> User: 401 Unauthorized
+            else Password correct
+                ' Generate tokens
+                Service -> Service: Generate access token\n(JWT, 15 min expiry)
+                note right: Payload:\n{userId, email, isVerified}
+                
+                Service -> Service: Generate refresh token\n(JWT, 7 day expiry)
+                note right: Payload:\n{userId, tokenId}
+                
+                ' Save refresh token
+                Service -> Prisma: create(refresh_tokens,\n{userId, token, expiresAt})
+                activate Prisma
+                Prisma -> DB: INSERT INTO refresh_tokens\n(user_id, token, expires_at)
+                activate DB
+                DB --> Prisma: Token saved
+                deactivate DB
+                Prisma --> Service: Refresh token record
+                deactivate Prisma
+                
+                ' Update last login
+                Service -> Prisma: update(users,\n{where: {id}, data: {lastLogin: NOW()}})
+                activate Prisma
+                Prisma -> DB: UPDATE users\nSET last_login = NOW()\nWHERE id = ?
+                activate DB
+                DB --> Prisma: Updated
+                deactivate DB
+                Prisma --> Service: User updated
+                deactivate Prisma
+                
+                Service --> Controller: {success: true,\ntokens: {accessToken, refreshToken},\nuser: {id, email, ...}}
+                deactivate Service
+                
+                Controller --> API: 200 OK\n{success: true, data: {tokens, user}}
+                deactivate Controller
+                
+                API --> User: 200 OK\n{accessToken, refreshToken, user}
+                deactivate API
+                
+                note over User
+                  Store tokens:
+                  - Access token in memory/localStorage
+                  - Refresh token in httpOnly cookie (recommended)
+                  
+                  Use access token in Authorization header:
+                  Authorization: Bearer {accessToken}
+                end note
+            end
+        end
+    end
+end
+
+@enduml

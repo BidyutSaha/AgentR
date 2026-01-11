@@ -1,0 +1,108 @@
+@startuml token-refresh-sequence
+
+title Token Refresh Flow
+
+actor User
+participant "API Gateway" as API
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+User -> API: POST /v1/auth/refresh-token\n{refreshToken}
+activate API
+
+API -> Controller: refreshToken(req, res)
+activate Controller
+
+Controller -> Service: refreshAccessToken(refreshToken)
+activate Service
+
+' Verify refresh token JWT
+Service -> Service: jwt.verify(refreshToken, JWT_SECRET)
+
+alt Invalid JWT signature
+    Service --> Controller: 401 Unauthorized
+    Controller --> API: {success: false, error: "Invalid token"}
+    API --> User: 401 Unauthorized
+else Valid JWT
+    Service -> Service: Extract payload\n{userId, tokenId}
+    
+    ' Find refresh token in database
+    Service -> Prisma: findUnique(refresh_tokens,\n{where: {token: refreshToken}})
+    activate Prisma
+    Prisma -> DB: SELECT * FROM refresh_tokens\nWHERE token = ?
+    activate DB
+    DB --> Prisma: Token record
+    deactivate DB
+    Prisma --> Service: {id, userId, expiresAt, revokedAt}
+    deactivate Prisma
+    
+    alt Token not found in database
+        Service --> Controller: 401 Unauthorized
+        Controller --> API: {success: false, error: "Token not found"}
+        API --> User: 401 Unauthorized
+    else Token found
+        ' Check if token is revoked
+        alt Token is revoked
+            Service --> Controller: 401 Unauthorized
+            Controller --> API: {success: false, error: "Token revoked"}
+            API --> User: 401 Unauthorized
+        else Token not revoked
+            ' Check if token is expired
+            Service -> Service: Check expiresAt > NOW()
+            
+            alt Token expired
+                Service --> Controller: 401 Unauthorized
+                Controller --> API: {success: false, error: "Token expired"}
+                API --> User: 401 Unauthorized
+            else Token valid
+                ' Generate new tokens
+                Service -> Service: Generate new access token\n(JWT, 15 min expiry)
+                Service -> Service: Generate new refresh token\n(JWT, 7 day expiry)
+                
+                ' Token rotation: Revoke old, create new
+                Service -> Prisma: $transaction([...])
+                activate Prisma
+                note right: Atomic transaction:\n1. Revoke old token\n2. Create new token
+                
+                Prisma -> DB: BEGIN TRANSACTION
+                activate DB
+                
+                ' Revoke old refresh token
+                Prisma -> DB: UPDATE refresh_tokens\nSET revoked_at = NOW(),\nreplaced_by_token = ?\nWHERE id = ?
+                note right: Mark old token as revoked\nand link to new token
+                DB --> Prisma: Old token revoked
+                
+                ' Create new refresh token
+                Prisma -> DB: INSERT INTO refresh_tokens\n(user_id, token, expires_at)
+                DB --> Prisma: New token created
+                
+                Prisma -> DB: COMMIT TRANSACTION
+                deactivate DB
+                Prisma --> Service: Transaction successful
+                deactivate Prisma
+                
+                Service --> Controller: {success: true,\ntokens: {accessToken, refreshToken}}
+                deactivate Service
+                
+                Controller --> API: 200 OK\n{success: true,\ndata: {tokens}}
+                deactivate Controller
+                
+                API --> User: 200 OK\n{accessToken, refreshToken}
+                deactivate API
+                
+                note over User
+                  Store new tokens:
+                  - New access token (15 min)
+                  - New refresh token (7 days)
+                  
+                  Old refresh token is now invalid
+                  (token rotation for security)
+                end note
+            end
+        end
+    end
+end
+
+@enduml

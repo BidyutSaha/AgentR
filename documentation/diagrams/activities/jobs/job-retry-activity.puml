@@ -1,0 +1,108 @@
+@startuml job-retry-activity
+
+title Job Retry & Resume Activity Diagram
+
+start
+
+:User requests job resume\n(jobId);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Find job by ID;
+  
+  if (Job exists?) then (yes)
+    :Check job belongs to user;
+    
+    if (Job belongs to user?) then (yes)
+      :Check job status;
+      
+      if (Status = FAILED or\nFAILED_NO_CREDITS?) then (yes)
+        :Determine job type;
+        
+        if (Job type = PROJECT_INIT_INTENT\nor PROJECT_INIT_QUERY?) then (project job)
+          :Check if project exists\n(Orphan Check);
+          
+          if (Project exists?) then (yes)
+            :Continue to credit check;
+          else (no - orphaned)
+            :Return 400 Bad Request\n"Project no longer exists";
+            stop
+          endif
+          
+        else (paper job)
+          :Check if paper exists\n(Orphan Check);
+          
+          if (Paper exists?) then (yes)
+            :Check if project exists;
+            
+            if (Project exists?) then (yes)
+              :Continue to credit check;
+            else (no - orphaned)
+              :Return 400 Bad Request\n"Project no longer exists";
+              stop
+            endif
+          else (no - orphaned)
+            :Return 400 Bad Request\n"Paper no longer exists";
+            stop
+          endif
+        endif
+        
+        :Get user credits balance\n(Credit Check);
+        
+        if (Sufficient credits?) then (yes)
+          :Reconstruct job payload\nfrom database;
+          
+          note right
+            Redis Resilience:
+            Rebuild payload from DB
+            - userId
+            - projectId
+            - paperId (if applicable)
+            - userIdea (for project jobs)
+            - title, abstract (for paper jobs)
+            
+            Survives Redis restart!
+          end note
+          
+          :Create new BullMQ job\nwith reconstructed payload;
+          
+          :Update background_jobs:\n- status = PENDING\n- bullmqJobId = new ID\n- attempts += 1\n- failureReason = null;
+          
+          :Return 202 Accepted\n{job};
+          
+          note right
+            Job resumed successfully!
+            
+            Worker will pick up job
+            and process it again
+          end note
+          
+          stop
+          
+        else (no - insufficient credits)
+          :Return 402 Payment Required\n"Insufficient credits";
+          stop
+        endif
+        
+      else (no - not failed)
+        :Return 400 Bad Request\n"Only failed jobs can be resumed";
+        stop
+      endif
+      
+    else (no - unauthorized)
+      :Return 403 Forbidden\n"Unauthorized";
+      stop
+    endif
+    
+  else (no - not found)
+    :Return 404 Not Found\n"Job not found";
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

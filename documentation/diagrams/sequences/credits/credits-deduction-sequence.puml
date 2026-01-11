@@ -1,0 +1,111 @@
+@startuml credits-deduction-sequence
+
+title Credits Deduction Flow (Atomic Transaction)
+
+participant "Worker" as Worker
+participant "Credits Service" as Credits
+participant "Pricing Service" as Pricing
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+note over Worker
+  LLM call completed successfully
+  Token usage received from OpenAI
+end note
+
+Worker -> Worker: Extract usage data\n{inputTokens: 1050, outputTokens: 520}
+
+Worker -> Credits: deductCredits(userId, usage, operationType)
+activate Credits
+
+' Get model pricing
+Credits -> Pricing: getLatestPricing(modelName)
+activate Pricing
+
+Pricing -> Prisma: findFirst(llm_model_pricing,\n{where: {modelName, isLatest: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM llm_model_pricing\nWHERE model_name = ?\nAND is_latest = true
+activate DB
+DB --> Prisma: {inputUsdPricePerMillionTokens: 2.50,\noutputUsdPricePerMillionTokens: 10.00}
+deactivate DB
+Prisma --> Pricing: Pricing data
+deactivate Prisma
+
+Pricing --> Credits: {inputPrice: 2.50, outputPrice: 10.00}
+deactivate Pricing
+
+' Calculate USD cost
+Credits -> Credits: inputCost = (inputTokens / 1,000,000) × inputPrice
+note right: (1050 / 1,000,000) × 2.50 = $0.002625
+
+Credits -> Credits: outputCost = (outputTokens / 1,000,000) × outputPrice
+note right: (520 / 1,000,000) × 10.00 = $0.00520
+
+Credits -> Credits: totalCostUsd = inputCost + outputCost
+note right: $0.002625 + $0.00520 = $0.007825
+
+' Get credits multiplier
+Credits -> Prisma: findFirst(credits_multiplier_history,\n{where: {isActive: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM credits_multiplier_history\nWHERE is_active = true
+activate DB
+DB --> Prisma: {usdToCreditsMultiplier: 1000}
+deactivate DB
+Prisma --> Credits: Multiplier: 1000
+deactivate Prisma
+
+' Calculate credits to deduct
+Credits -> Credits: creditsToDeduct = totalCostUsd × multiplier
+note right: $0.007825 × 1000 = 7.825 credits
+
+' Begin atomic transaction
+Credits -> Prisma: $transaction([...])
+activate Prisma
+note right: Atomic transaction ensures:\n1. Balance deduction\n2. Usage logging\nBoth succeed or both fail
+
+Prisma -> DB: BEGIN TRANSACTION
+activate DB
+
+' Check current balance
+Prisma -> DB: SELECT ai_credits_balance\nFROM users\nWHERE id = ?\nFOR UPDATE
+note right: FOR UPDATE locks row\nto prevent race conditions
+DB --> Prisma: {aiCreditsBalance: 79.175}
+
+alt Insufficient balance
+    Prisma -> DB: ROLLBACK TRANSACTION
+    deactivate DB
+    Prisma --> Credits: Error: Insufficient credits
+    Credits --> Worker: Error: FAILED_NO_CREDITS
+else Sufficient balance
+    ' Deduct credits
+    Prisma -> DB: UPDATE users\nSET ai_credits_balance = ai_credits_balance - 7.825\nWHERE id = ?
+    DB --> Prisma: Balance updated (71.35 credits)
+    
+    ' Log usage
+    Prisma -> DB: INSERT INTO llm_usage_logs\n(user_id, project_id, paper_id,\noperation_type, model_name,\ninput_tokens, output_tokens,\ninput_cost_usd, output_cost_usd,\ntotal_cost_usd, metadata,\ncreated_at)
+    note right: Stores USD costs\nfor historical accuracy
+    DB --> Prisma: Usage logged
+    
+    ' Commit transaction
+    Prisma -> DB: COMMIT TRANSACTION
+    deactivate DB
+    
+    Prisma --> Credits: {success: true,\nnewBalance: 71.35,\ncostUsd: 0.007825,\ncreditsDeducted: 7.825}
+    deactivate Prisma
+    
+    Credits --> Worker: {success: true,\nnewBalance: 71.35}
+    deactivate Credits
+    
+    note over Worker
+      Credits deducted successfully!
+      
+      Old balance: 79.175
+      Deducted: 7.825
+      New balance: 71.35
+      
+      USD cost: $0.007825
+      (stored in llm_usage_logs)
+    end note
+end
+
+@enduml

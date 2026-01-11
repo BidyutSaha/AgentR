@@ -1,0 +1,85 @@
+@startuml llm-usage-tracking-activity
+
+title LLM Usage Tracking Activity Diagram
+
+start
+
+:User requests usage report\n(currency: USD or CREDITS);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Extract userId from JWT;
+  
+  :Get user's LLM usage logs\nwith project and paper relations;
+  
+  :Sort by created_at DESC;
+  
+  if (Currency = USD?) then (yes)
+    :Calculate total cost USD\n= SUM(total_cost_usd);
+    
+    :Group by project:\nproject_name → SUM(total_cost_usd);
+    
+    :Group by operation type:\noperation_type → SUM(total_cost_usd);
+    
+    :Format response:\n- totalCostUsd\n- byProject: [{name, cost}]\n- byOperation: [{type, cost}]\n- logs: [{...}];
+    
+    :Return 200 OK\n{usage in USD};
+    
+    note right
+      USD Report:
+      
+      Total: $0.23
+      
+      By Project:
+      - Project A: $0.15
+      - Project B: $0.08
+      
+      By Operation:
+      - Intent: $0.05
+      - Queries: $0.06
+      - Scoring: $0.12
+    end note
+    
+    stop
+    
+  else (Currency = CREDITS)
+    :Get active credits multiplier;
+    
+    :For each log:\ncredits = total_cost_usd × multiplier;
+    
+    :Calculate total credits\n= SUM(credits);
+    
+    :Group by project:\nproject_name → SUM(credits);
+    
+    :Group by operation type:\noperation_type → SUM(credits);
+    
+    :Format response:\n- totalCredits\n- multiplier\n- byProject: [{name, credits}]\n- byOperation: [{type, credits}]\n- logs: [{..., credits}];
+    
+    :Return 200 OK\n{usage in Credits};
+    
+    note right
+      Credits Report:
+      
+      Total: 230 credits
+      Multiplier: 1000
+      
+      By Project:
+      - Project A: 150 credits
+      - Project B: 80 credits
+      
+      By Operation:
+      - Intent: 50 credits
+      - Queries: 60 credits
+      - Scoring: 120 credits
+    end note
+    
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

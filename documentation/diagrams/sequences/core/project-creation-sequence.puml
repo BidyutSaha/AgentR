@@ -1,0 +1,107 @@
+@startuml project-creation-sequence
+
+title Project Creation with Background Job Flow
+
+actor User
+participant "API Gateway" as API
+participant "Project Controller" as Controller
+participant "Project Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+participant "BullMQ" as Queue
+participant "Redis" as Redis
+
+User -> API: POST /v1/user-projects/create-project\nAuthorization: Bearer {accessToken}\n{projectName, userIdea}
+activate API
+
+API -> API: Verify JWT token
+note right: Extract userId from token
+
+API -> Controller: createProject(req, res)
+activate Controller
+
+Controller -> Service: createProject(userId, projectData)
+activate Service
+
+' Check project name uniqueness
+Service -> Prisma: findFirst(user_projects,\n{where: {userId, projectName}})
+activate Prisma
+Prisma -> DB: SELECT * FROM user_projects\nWHERE user_id = ? AND project_name = ?
+activate DB
+DB --> Prisma: null (name available)
+deactivate DB
+Prisma --> Service: null
+deactivate Prisma
+
+alt Project name already exists
+    Service --> Controller: 409 Conflict
+    Controller --> API: {success: false, error: "Project name exists"}
+    API --> User: 409 Conflict
+else Project name available
+    ' Create project record
+    Service -> Prisma: create(user_projects,\n{userId, projectName, userIdea,\nintentProcessedStatus: NOT_INITIATED,\nsearchQueryProcessedStatus: NOT_INITIATED})
+    activate Prisma
+    Prisma -> DB: INSERT INTO user_projects\n(user_id, project_name, user_idea,\nintent_processed_status,\nsearch_query_processing_status)
+    activate DB
+    DB --> Prisma: Project created
+    deactivate DB
+    Prisma --> Service: {id: projectId, ...}
+    deactivate Prisma
+    
+    ' Create background job record
+    Service -> Prisma: create(background_jobs,\n{userId, projectId,\njobType: PROJECT_INIT_INTENT,\nstatus: PENDING})
+    activate Prisma
+    Prisma -> DB: INSERT INTO background_jobs\n(user_id, project_id, job_type, status)
+    activate DB
+    DB --> Prisma: Job created
+    deactivate DB
+    Prisma --> Service: {id: jobId, ...}
+    deactivate Prisma
+    
+    ' Create BullMQ job
+    Service -> Queue: Add job to project queue\n{name: PROJECT_INIT_INTENT,\ndata: {userId, projectId, userIdea}}
+    activate Queue
+    Queue -> Redis: Store job payload
+    activate Redis
+    Redis --> Queue: Job stored
+    deactivate Redis
+    Queue --> Service: {bullmqJobId}
+    deactivate Queue
+    
+    ' Update background_jobs with BullMQ job ID
+    Service -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {bullmqJobId}})
+    activate Prisma
+    Prisma -> DB: UPDATE background_jobs\nSET bullmq_job_id = ?\nWHERE id = ?
+    activate DB
+    DB --> Prisma: Updated
+    deactivate DB
+    Prisma --> Service: Success
+    deactivate Prisma
+    
+    Service --> Controller: {success: true,\nproject, jobId}
+    deactivate Service
+    
+    Controller --> API: 202 Accepted\n{success: true,\ndata: {project, jobId},\nmessage: "Project created.\nProcessing started."}
+    deactivate Controller
+    
+    API --> User: 202 Accepted\n{project, jobId}
+    deactivate API
+    
+    note over User
+      User receives:
+      - Project ID
+      - Job ID
+      
+      Can monitor job status:
+      GET /v1/jobs?projectId={projectId}
+    end note
+end
+
+note over Queue, Redis
+  BullMQ worker will pick up job
+  and process Stage 1 (Intent Decomposition)
+  
+  See: intent-decomposition-sequence.puml
+end note
+
+@enduml

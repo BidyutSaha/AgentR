@@ -1,0 +1,97 @@
+@startuml config-update-activity
+
+title Configuration Update Activity Diagram (Type 2 SCD)
+
+start
+
+:Admin submits config update\n(multiplier, description);
+
+:Verify JWT authentication;
+
+if (Admin authenticated?) then (yes)
+  :Verify admin role;
+  
+  if (User is admin?) then (yes)
+    :Validate multiplier > 0;
+    
+    if (Multiplier valid?) then (yes)
+      :Get current active config\n(is_active = true);
+      
+      if (Current config exists?) then (yes)
+        partition "Type 2 SCD Transaction" {
+          :BEGIN TRANSACTION;
+          
+          :Deactivate current record:\n- is_active = false\n- effective_to = NOW();
+          
+          note right
+            Old record preserved:
+            
+            multiplier: 1000
+            effective_from: 2026-01-01
+            effective_to: 2026-01-11 (NOW)
+            is_active: false
+            
+            Complete history maintained!
+          end note
+          
+          :Create new record:\n- usd_to_credits_multiplier = new value\n- description\n- updated_by = admin_id\n- effective_from = NOW()\n- effective_to = NULL\n- is_active = true;
+          
+          note right
+            New record:
+            
+            multiplier: 1200
+            effective_from: 2026-01-11 (NOW)
+            effective_to: NULL
+            is_active: true
+            updated_by: admin_id
+            
+            Effective immediately!
+          end note
+          
+          :COMMIT TRANSACTION;
+        }
+        
+        :Return 200 OK\n{oldMultiplier, newMultiplier, effectiveFrom};
+        
+        note right
+          Configuration updated!
+          
+          Old: 1 USD = 1000 Credits
+          New: 1 USD = 1200 Credits
+          
+          Effective: 2026-01-11
+          
+          Benefits:
+          1. Complete audit trail
+          2. Historical accuracy
+          3. No data loss
+          4. Effective date tracking
+          5. Easy rollback
+          
+          Existing USD costs in
+          llm_usage_logs remain accurate
+        end note
+        
+        stop
+        
+      else (no - no active config)
+        :Return 500 Internal Error\n"No active configuration found";
+        stop
+      endif
+      
+    else (no - invalid multiplier)
+      :Return 400 Bad Request\n"Multiplier must be positive";
+      stop
+    endif
+    
+  else (no - not admin)
+    :Return 403 Forbidden\n"Admin access required";
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

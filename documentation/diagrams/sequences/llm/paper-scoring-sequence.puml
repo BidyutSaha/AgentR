@@ -1,0 +1,186 @@
+@startuml paper-scoring-sequence
+
+title Stage 3: Paper Scoring (LLM Processing)
+
+participant "Paper Worker" as Worker
+participant "LLM Service" as LLM
+participant "OpenAI API" as OpenAI
+participant "Credits Service" as Credits
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+note over Worker
+  Worker picked up PAPER_SCORING job
+  from BullMQ queue
+end note
+
+Worker -> Worker: Extract job data\n{userId, projectId, paperId}
+
+' Orphan checks
+Worker -> Prisma: findUnique(candidate_papers,\n{where: {id: paperId},\ninclude: {project: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM candidate_papers cp\nJOIN user_projects up ON cp.project_id = up.id\nWHERE cp.id = ?
+activate DB
+DB --> Prisma: Paper with project data
+deactivate DB
+Prisma --> Worker: {paper: {title, abstract},\nproject: {problemStatement, ...}}
+deactivate Prisma
+
+alt Paper or Project not found
+    Worker -> Prisma: Update job status = FAILED
+    Worker --> Worker: Exit (job failed)
+else Paper and Project exist
+    ' Check project has Stage 1+2 results
+    alt Project not fully processed
+        Worker -> Prisma: Update job status = FAILED
+        Worker -> Worker: Log: "Project not ready (Stage 1+2 required)"
+        Worker --> Worker: Exit (job failed)
+    else Project ready (Stage 1+2 completed)
+        ' Credit check
+        Worker -> Prisma: findUnique(users,\n{where: {id: userId}})
+        activate Prisma
+        Prisma -> DB: SELECT ai_credits_balance\nFROM users WHERE id = ?
+        activate DB
+        DB --> Prisma: {aiCreditsBalance: 71.35}
+        deactivate DB
+        Prisma --> Worker: Balance: 71.35 credits
+        deactivate Prisma
+        
+        alt Insufficient credits
+            Worker -> Prisma: Update job status = FAILED_NO_CREDITS
+            Worker --> Worker: Exit (job failed)
+        else Sufficient credits
+            ' Build user abstract from project
+            Worker -> Worker: userAbstract = buildAbstract(\nproblemStatement, methodologies,\napplicationDomains, constraints)
+            
+            ' Build LLM prompt
+            Worker -> LLM: scorePaper(userAbstract, candidateAbstract)
+            activate LLM
+            
+            LLM -> LLM: Build prompt template
+            note right
+              System: "You are a research paper evaluator..."
+              User: "Compare these two research abstracts:"
+              
+              User's Research:
+              {userAbstract}
+              
+              Candidate Paper:
+              {candidateAbstract}
+              
+              Analyze and return:
+              1. Semantic similarity (0.0000-1.0000)
+              2. Overlap analysis:
+                 - Problem overlap (high/medium/low)
+                 - Method overlap (high/medium/low)
+                 - Domain overlap (high/medium/low)
+                 - Constraint overlap (high/medium/low)
+              3. C1 Score (Competitor, 0-100)
+                 - Justification
+                 - Strengths
+                 - Weaknesses
+              4. C2 Score (Supporting work, 0-100)
+                 - Justification
+                 - Contribution type
+                 - Relevance areas
+                 - Strengths
+                 - Weaknesses
+              5. Research gaps
+              6. User's novelty
+              7. Candidate advantages
+              
+              Return JSON format.
+            end note
+            
+            ' Call OpenAI
+            LLM -> OpenAI: POST /v1/chat/completions\n{model: "gpt-4o", messages: [...]}
+            activate OpenAI
+            
+            OpenAI -> OpenAI: Process request
+            note right: LLM performs\ncomprehensive\npaper analysis
+            
+            OpenAI --> LLM: Response\n{choices, usage: {inputTokens, outputTokens}}
+            deactivate OpenAI
+            
+            LLM -> LLM: Parse JSON response
+            LLM --> Worker: {semanticSimilarity: 0.7845,\nproblemOverlap: "high", methodOverlap: "medium",\ndomainOverlap: "high", constraintOverlap: "low",\nc1Score: 75, c1Justification: "...",\nc1Strengths: "...", c1Weaknesses: "...",\nc2Score: 60, c2Justification: "...",\nc2ContributionType: "...", c2RelevanceAreas: "...",\nc2Strengths: "...", c2Weaknesses: "...",\nresearchGaps: "...", userNovelty: "...",\ncandidateAdvantage: "...",\nusage: {inputTokens: 1350, outputTokens: 720}}
+            deactivate LLM
+            
+            ' Calculate cost
+            Worker -> Credits: calculateCost(usage)
+            activate Credits
+            
+            Credits -> Prisma: Get pricing and multiplier
+            activate Prisma
+            Prisma -> DB: Get llm_model_pricing and\ncredits_multiplier_history
+            activate DB
+            DB --> Prisma: Pricing data
+            deactivate DB
+            Prisma --> Credits: {inputPrice: 2.50, outputPrice: 10.00,\nmultiplier: 1000}
+            deactivate Prisma
+            
+            Credits -> Credits: inputCost = (1350 / 1,000,000) × 2.50 = $0.003375
+            Credits -> Credits: outputCost = (720 / 1,000,000) × 10.00 = $0.00720
+            Credits -> Credits: totalCostUsd = $0.010575
+            Credits -> Credits: creditsToDeduct = 0.010575 × 1000 = 10.575
+            Credits --> Worker: {costUsd: 0.010575, credits: 10.575}
+            deactivate Credits
+            
+            ' Deduct credits (atomic transaction)
+            Worker -> Prisma: $transaction([...])
+            activate Prisma
+            note right: Atomic transaction:\n1. Deduct credits\n2. Log usage
+            
+            Prisma -> DB: BEGIN TRANSACTION
+            activate DB
+            
+            Prisma -> DB: UPDATE users\nSET ai_credits_balance = ai_credits_balance - 10.575\nWHERE id = ?
+            DB --> Prisma: Balance updated (60.775 credits)
+            
+            Prisma -> DB: INSERT INTO llm_usage_logs\n(user_id, project_id, paper_id,\noperation_type, model_name,\ninput_tokens, output_tokens,\ntotal_cost_usd, ...)
+            DB --> Prisma: Usage logged
+            
+            Prisma -> DB: COMMIT TRANSACTION
+            deactivate DB
+            Prisma --> Worker: Transaction successful
+            deactivate Prisma
+            
+            ' Update paper with scoring results
+            Worker -> Prisma: update(candidate_papers,\n{where: {id: paperId},\ndata: {semanticSimilarity, problemOverlap,\nmethodOverlap, domainOverlap, constraintOverlap,\nc1Score, c1Justification, c1Strengths, c1Weaknesses,\nc2Score, c2Justification, c2ContributionType,\nc2RelevanceAreas, c2Strengths, c2Weaknesses,\nresearchGaps, userNovelty, candidateAdvantage,\nisProcessedByLlm: true}})
+            activate Prisma
+            Prisma -> DB: UPDATE candidate_papers\nSET semantic_similarity = 0.7845,\nproblem_overlap = 'high',\n...,\nis_processed_by_llm = true\nWHERE id = ?
+            activate DB
+            note right: 31 columns updated\nwith complete analysis
+            DB --> Prisma: Paper updated
+            deactivate DB
+            Prisma --> Worker: Success
+            deactivate Prisma
+            
+            ' Update job status
+            Worker -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {status: COMPLETED}})
+            activate Prisma
+            Prisma -> DB: UPDATE background_jobs\nSET status = 'COMPLETED'\nWHERE id = ?
+            activate DB
+            DB --> Prisma: Job updated
+            deactivate DB
+            Prisma --> Worker: Success
+            deactivate Prisma
+            
+            note over Worker
+              Paper scoring completed successfully!
+              Credits deducted: 10.575
+              New balance: 60.775
+              
+              Paper analysis includes:
+              - Semantic similarity: 78.45%
+              - C1 Score (Competitor): 75/100
+              - C2 Score (Supporting): 60/100
+              - Research gaps identified
+              - User novelty highlighted
+              - Complete overlap analysis
+            end note
+        end
+    end
+end
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml project-export-activity
+
+title Project Export to Excel Activity Diagram
+
+start
+
+:User requests export\n(projectId);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Find project by ID\nwith papers;
+  
+  if (Project exists?) then (yes)
+    :Check project belongs to user;
+    
+    if (Project belongs to user?) then (yes)
+      :Create Excel workbook;
+      
+      partition "Sheet 1: Project Overview" {
+        :Create worksheet;
+        
+        :Add project details:\n- Name, User Idea\n- Problem Statement\n- Methodologies\n- Application Domains\n- Constraints\n- Contribution Types\n- Keywords\n- Boolean Query\n- Expanded Keywords\n- Search Queries;
+        
+        :Apply formatting\n(bold headers, auto-fit);
+      }
+      
+      partition "Sheet 2: Papers Summary" {
+        :Create worksheet;
+        
+        :Add headers:\nTitle, C1 Score, C2 Score,\nSemantic Similarity, Link;
+        
+        :Loop through papers;
+        
+        repeat
+          :Add paper row\nwith key metrics;
+        repeat while (More papers?) is (yes)
+        ->no;
+        
+        :Apply color coding:\n- High C1 (red)\n- High C2 (green)\n- High similarity (blue);
+        
+        :Freeze header row;
+      }
+      
+      partition "Sheet 3: Detailed Analysis" {
+        :Create worksheet;
+        
+        :Loop through papers;
+        
+        repeat
+          :Add paper section:\n- Title, Abstract\n- Overlap Analysis\n- C1 Analysis (score, justification,\n  strengths, weaknesses)\n- C2 Analysis (score, justification,\n  contribution type, relevance,\n  strengths, weaknesses)\n- Research Gaps\n- User Novelty\n- Candidate Advantages;
+          
+          :Add separator;
+        repeat while (More papers?) is (yes)
+        ->no;
+      }
+      
+      :Generate Excel buffer;
+      
+      :Set response headers:\n- Content-Type: application/vnd.openxmlformats...\n- Content-Disposition: attachment;\n  filename="{projectName}_report.xlsx";
+      
+      :Send file buffer;
+      
+      :Return 200 OK\n(Excel file download);
+      
+      note right
+        Excel file contains:
+        1. Project Overview
+        2. Papers Summary (sortable)
+        3. Detailed Analysis
+        
+        Ready for offline review!
+      end note
+      
+      stop
+      
+    else (no - unauthorized)
+      :Return 403 Forbidden;
+      stop
+    endif
+    
+  else (no - not found)
+    :Return 404 Not Found;
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

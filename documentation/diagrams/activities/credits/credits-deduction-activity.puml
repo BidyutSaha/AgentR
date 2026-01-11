@@ -1,0 +1,71 @@
+@startuml credits-deduction-activity
+
+title Credits Deduction Activity Diagram
+
+start
+
+:LLM call completes successfully;
+
+:Extract token usage\n(inputTokens, outputTokens);
+
+:Get latest model pricing\n(is_latest = true);
+
+:Calculate input cost USD\n= (inputTokens / 1,000,000) × inputPrice;
+
+:Calculate output cost USD\n= (outputTokens / 1,000,000) × outputPrice;
+
+:Calculate total cost USD\n= input cost + output cost;
+
+:Get active credits multiplier\n(is_active = true);
+
+:Calculate credits to deduct\n= total cost USD × multiplier;
+
+partition "Atomic Transaction" {
+  :BEGIN TRANSACTION;
+  
+  :Lock user row\n(SELECT FOR UPDATE);
+  
+  :Get current balance;
+  
+  if (Balance >= credits to deduct?) then (yes)
+    :Deduct credits:\nbalance -= credits to deduct;
+    
+    :Create llm_usage_logs record:\n- user_id\n- project_id / paper_id\n- operation_type\n- model_name\n- input_tokens\n- output_tokens\n- input_cost_usd\n- output_cost_usd\n- total_cost_usd\n- metadata;
+    
+    note right
+      Store USD costs for accuracy
+      Credits calculated on-the-fly
+      using current multiplier
+    end note
+    
+    :COMMIT TRANSACTION;
+    
+    :Return success\n{newBalance, costUsd, creditsDeducted};
+    
+    note right
+      Credits deducted successfully!
+      
+      Transaction ensures:
+      - Balance updated
+      - Usage logged
+      - Both succeed or both fail
+    end note
+    
+    stop
+    
+  else (no - insufficient)
+    :ROLLBACK TRANSACTION;
+    
+    :Return error\nFAILED_NO_CREDITS;
+    
+    note right
+      Job will fail
+      User must recharge credits
+      Can resume job after recharge
+    end note
+    
+    stop
+  endif
+}
+
+@enduml

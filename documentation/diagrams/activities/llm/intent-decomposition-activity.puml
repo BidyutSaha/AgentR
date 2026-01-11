@@ -1,0 +1,106 @@
+@startuml intent-decomposition-activity
+
+title Stage 1: Intent Decomposition Activity Diagram
+
+start
+
+:Worker picks up\nPROJECT_INIT_INTENT job;
+
+:Extract job data\n(userId, projectId, userIdea);
+
+:Check if project exists\n(Orphan Check);
+
+if (Project exists?) then (yes)
+  :Get user credits balance;
+  
+  if (Sufficient credits?) then (yes)
+    :Build LLM prompt\nfor intent decomposition;
+    
+    note right
+      Prompt includes:
+      - User's research idea
+      - Instructions to extract:
+        * Problem statement
+        * Methodologies
+        * Domains
+        * Constraints
+        * Contribution types
+        * Keywords
+    end note
+    
+    :Call OpenAI API\n(gpt-4o model);
+    
+    if (API call successful?) then (yes)
+      :Parse JSON response;
+      
+      :Get token usage\n(input + output tokens);
+      
+      :Calculate USD cost\n(tokens × pricing);
+      
+      :Get active credits multiplier;
+      
+      :Calculate credits to deduct\n(USD cost × multiplier);
+      
+      partition "Atomic Transaction" {
+        :Check balance >= credits;
+        
+        if (Balance sufficient?) then (yes)
+          :Deduct credits from user;
+          
+          :Log LLM usage\n(USD costs);
+          
+          :Commit transaction;
+        else (no)
+          :Rollback transaction;
+          
+          :Update job status\n= FAILED_NO_CREDITS;
+          
+          :Log failure reason;
+          
+          stop
+        endif
+      }
+      
+      :Update project with\nStage 1 results;
+      
+      :Set intentProcessedStatus\n= EVALUATED;
+      
+      :Update job status\n= COMPLETED;
+      
+      :Create Stage 2 job\n(PROJECT_INIT_QUERY);
+      
+      :Queue Stage 2 job\nin BullMQ;
+      
+      note right
+        Stage 1 complete!
+        Stage 2 will process
+        query generation
+      end note
+      
+      stop
+      
+    else (no - API error)
+      :Update job status = FAILED;
+      
+      :Log error details;
+      
+      stop
+    endif
+    
+  else (no - insufficient credits)
+    :Update job status\n= FAILED_NO_CREDITS;
+    
+    :Log failure reason;
+    
+    stop
+  endif
+  
+else (no - project deleted)
+  :Update job status = FAILED;
+  
+  :Log orphan warning;
+  
+  stop
+endif
+
+@enduml

@@ -1,0 +1,85 @@
+@startuml llm-usage-tracking-sequence
+
+title LLM Usage Tracking Flow
+
+actor User
+participant "API Gateway" as API
+participant "Usage Controller" as Controller
+participant "Usage Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+User -> API: GET /v1/llm-usage/my-usage?currency=USD\nAuthorization: Bearer {accessToken}
+activate API
+
+API -> API: Verify JWT token\nExtract userId
+
+API -> Controller: getMyUsage(req, res)
+activate Controller
+
+Controller -> Service: getUserUsage(userId, currency)
+activate Service
+
+' Get user's LLM usage logs
+Service -> Prisma: findMany(llm_usage_logs,\n{where: {userId},\ninclude: {project, paper},\norderBy: {createdAt: desc}})
+activate Prisma
+Prisma -> DB: SELECT lul.*, up.project_name, cp.title\nFROM llm_usage_logs lul\nLEFT JOIN user_projects up ON lul.project_id = up.id\nLEFT JOIN candidate_papers cp ON lul.paper_id = cp.id\nWHERE lul.user_id = ?\nORDER BY lul.created_at DESC
+activate DB
+DB --> Prisma: Usage logs with relations
+deactivate DB
+Prisma --> Service: Usage logs
+deactivate Prisma
+
+alt currency = USD
+    ' Calculate USD totals
+    Service -> Service: totalCostUsd = SUM(total_cost_usd)
+    Service -> Service: Group by project
+    Service -> Service: Group by operation type
+    
+    Service --> Controller: {success: true,\ntotalCostUsd,\nbyProject: [...],\nbyOperation: [...],\nlogs: [...]}
+else currency = CREDITS
+    ' Get credits multiplier
+    Service -> Prisma: findFirst(credits_multiplier_history,\n{where: {isActive: true}})
+    activate Prisma
+    Prisma -> DB: SELECT * FROM credits_multiplier_history\nWHERE is_active = true
+    activate DB
+    DB --> Prisma: {multiplier: 1000}
+    deactivate DB
+    Prisma --> Service: Multiplier: 1000
+    deactivate Prisma
+    
+    ' Convert USD to Credits
+    Service -> Service: For each log:\ncredits = total_cost_usd × multiplier
+    Service -> Service: totalCredits = SUM(credits)
+    Service -> Service: Group by project (in credits)
+    Service -> Service: Group by operation (in credits)
+    
+    Service --> Controller: {success: true,\ntotalCredits,\nmultiplier: 1000,\nbyProject: [...],\nbyOperation: [...],\nlogs: [...]}
+end
+
+deactivate Service
+
+Controller --> API: 200 OK\n{success: true, data: {...}}
+deactivate Controller
+
+API --> User: 200 OK\n{totalCost, breakdown, logs}
+deactivate API
+
+note over User
+  Usage report includes:
+  
+  Total cost (USD or Credits)
+  
+  Breakdown by project:
+  - Project A: $0.15 (150 credits)
+  - Project B: $0.08 (80 credits)
+  
+  Breakdown by operation:
+  - Intent: $0.05 (50 credits)
+  - Queries: $0.06 (60 credits)
+  - Scoring: $0.12 (120 credits)
+  
+  Detailed logs with timestamps
+end note
+
+@enduml

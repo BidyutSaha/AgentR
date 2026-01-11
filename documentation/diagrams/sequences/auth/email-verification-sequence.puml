@@ -1,0 +1,96 @@
+@startuml email-verification-sequence
+
+title Email Verification Flow
+
+actor User
+participant "API Gateway" as API
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+note over User
+  User already registered
+  Verification email sent
+  User clicks verification link
+end note
+
+User -> API: POST /v1/auth/verify-email\n{token}
+activate API
+
+API -> Controller: verifyEmail(req, res)
+activate Controller
+
+Controller -> Service: verifyUserEmail(token)
+activate Service
+
+' Find verification token
+Service -> Prisma: findFirst(email_verification_tokens,\n{where: {token, usedAt: null},\ninclude: {user: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM email_verification_tokens evt\nJOIN users u ON evt.user_id = u.id\nWHERE evt.token = ?\nAND evt.used_at IS NULL
+activate DB
+DB --> Prisma: Token record with user
+deactivate DB
+Prisma --> Service: {token, user}
+deactivate Prisma
+
+alt Token not found or already used
+    Service --> Controller: 400 Bad Request
+    Controller --> API: {success: false,\nerror: "Invalid or expired token"}
+    API --> User: 400 Bad Request
+else Token found
+    ' Check if token expired
+    Service -> Service: Check expiresAt > NOW()
+    
+    alt Token expired (> 24 hours)
+        Service --> Controller: 400 Bad Request
+        Controller --> API: {success: false,\nerror: "Token expired.\nRequest new verification email"}
+        API --> User: 400 Bad Request
+    else Token valid
+        ' Check if user already verified
+        alt User already verified
+            Service --> Controller: 200 OK
+            Controller --> API: {success: true,\nmessage: "Email already verified"}
+            API --> User: 200 OK
+        else User not verified
+            ' Verify user and mark token as used
+            Service -> Prisma: $transaction([...])
+            activate Prisma
+            note right: Atomic transaction:\n1. Mark user as verified\n2. Mark token as used
+            
+            Prisma -> DB: BEGIN TRANSACTION
+            activate DB
+            
+            ' Update user verification status
+            Prisma -> DB: UPDATE users\nSET is_verified = true,\nemail_verified_at = NOW()\nWHERE id = ?
+            DB --> Prisma: User verified
+            
+            ' Mark token as used
+            Prisma -> DB: UPDATE email_verification_tokens\nSET used_at = NOW()\nWHERE id = ?
+            DB --> Prisma: Token marked as used
+            
+            Prisma -> DB: COMMIT TRANSACTION
+            deactivate DB
+            Prisma --> Service: Transaction successful
+            deactivate Prisma
+            
+            Service --> Controller: {success: true, user}
+            deactivate Service
+            
+            Controller --> API: 200 OK\n{success: true,\ndata: {user},\nmessage: "Email verified successfully"}
+            deactivate Controller
+            
+            API --> User: 200 OK
+            deactivate API
+            
+            note over User
+              Email verified successfully!
+              
+              User can now login:
+              POST /v1/auth/login
+            end note
+        end
+    end
+end
+
+@enduml

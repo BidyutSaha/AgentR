@@ -1,0 +1,60 @@
+@startuml job-monitoring-activity
+
+title Job Status Monitoring Activity Diagram
+
+start
+
+:User requests jobs\n(filters: status, projectId, paperId, jobType);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Extract userId from JWT;
+  
+  :Build query filters:\n- userId (always)\n- status (if provided)\n- projectId (if provided)\n- paperId (if provided)\n- jobType (if provided);
+  
+  :Get jobs from database\nwith project and paper relations;
+  
+  :Sort by created_at DESC;
+  
+  :For each job, extract:\n- Job ID, Type, Status\n- Project name (if applicable)\n- Paper title (if applicable)\n- Failure reason (if failed)\n- Attempts count\n- BullMQ job ID\n- Created/Updated timestamps;
+  
+  :Count total jobs;
+  
+  :Format response:\n- jobs: [{...}]\n- count: N;
+  
+  :Return 200 OK\n{jobs, count};
+  
+  note right
+    Job status response:
+    
+    Jobs: [
+      {
+        id: "job_123",
+        type: "PAPER_SCORING",
+        status: "FAILED",
+        projectName: "My Research",
+        paperTitle: "Candidate Paper 1",
+        failureReason: "Insufficient credits",
+        attempts: 2,
+        createdAt: "2026-01-11T10:00:00Z",
+        updatedAt: "2026-01-11T10:05:00Z"
+      },
+      ...
+    ]
+    
+    User can:
+    - Monitor progress
+    - Identify failed jobs
+    - Resume failed jobs
+    - Filter by various criteria
+  end note
+  
+  stop
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

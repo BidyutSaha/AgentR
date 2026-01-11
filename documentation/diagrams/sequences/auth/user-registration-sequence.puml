@@ -1,0 +1,116 @@
+@startuml user-registration-sequence
+
+title User Registration & Verification Flow
+
+actor User
+participant "API Gateway" as API
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+participant "BullMQ" as Queue
+participant "Email Worker" as Worker
+participant "Email Service" as Email
+
+User -> API: POST /v1/auth/register\n{email, password, firstName, lastName}
+activate API
+
+API -> Controller: register(req, res)
+activate Controller
+
+Controller -> Service: registerUser(userData)
+activate Service
+
+' Validation
+Service -> Service: Validate email format
+Service -> Service: Validate password strength\n(8+ chars, upper, lower, number, special)
+
+' Check uniqueness
+Service -> Prisma: findUnique({where: {email}})
+activate Prisma
+Prisma -> DB: SELECT * FROM users WHERE email = ?
+activate DB
+DB --> Prisma: null (email available)
+deactivate DB
+Prisma --> Service: null
+deactivate Prisma
+
+' Hash password
+Service -> Service: bcrypt.hash(password, 12)
+note right: Cost factor 12\nfor security
+
+' Get default credits
+Service -> Prisma: findFirst(default_credits_history,\n{where: {isActive: true}})
+activate Prisma
+Prisma -> DB: SELECT * FROM default_credits_history\nWHERE is_active = true
+activate DB
+DB --> Prisma: {defaultCredits: 100}
+deactivate DB
+Prisma --> Service: 100 credits
+deactivate Prisma
+
+' Create user with transaction
+Service -> Prisma: $transaction([...])
+activate Prisma
+note right: Atomic transaction:\n1. Create user\n2. Create transaction record
+
+Prisma -> DB: BEGIN TRANSACTION
+activate DB
+
+Prisma -> DB: INSERT INTO users\n(email, password_hash, first_name,\nlast_name, ai_credits_balance,\nis_verified, is_active)
+DB --> Prisma: User created
+
+Prisma -> DB: INSERT INTO user_credits_transactions\n(user_id, transaction_type,\namount, balance_before,\nbalance_after, description)
+DB --> Prisma: Transaction created
+
+Prisma -> DB: COMMIT TRANSACTION
+deactivate DB
+Prisma --> Service: {user, transaction}
+deactivate Prisma
+
+' Generate verification token
+Service -> Service: Generate UUID v4 token
+Service -> Prisma: create(email_verification_tokens)
+activate Prisma
+Prisma -> DB: INSERT INTO email_verification_tokens\n(user_id, token, expires_at)
+activate DB
+note right: Expires in 24 hours
+DB --> Prisma: Token created
+deactivate DB
+Prisma --> Service: {token}
+deactivate Prisma
+
+' Queue verification email
+Service -> Queue: Add job to email queue\n{type: SEND_EMAIL, userId, token}
+activate Queue
+Queue --> Service: Job ID
+deactivate Queue
+
+Service --> Controller: {success: true, user, message}
+deactivate Service
+
+Controller --> API: 201 Created\n{success: true, data: {user}}
+deactivate Controller
+
+API --> User: 201 Created\n"Registration successful.\nPlease check your email."
+deactivate API
+
+' Async email sending
+Queue -> Worker: Process email job
+activate Worker
+Worker -> Email: sendVerificationEmail(email, token)
+activate Email
+Email -> Email: Generate verification link\n{baseUrl}/verify-email?token={token}
+Email -> Email: Send email via SMTP
+Email --> Worker: Email sent
+deactivate Email
+Worker -> Prisma: Update job status = COMPLETED
+Worker --> Queue: Job completed
+deactivate Worker
+
+note over User, Email
+  User receives email with verification link.
+  Click link → POST /v1/auth/verify-email
+end note
+
+@enduml

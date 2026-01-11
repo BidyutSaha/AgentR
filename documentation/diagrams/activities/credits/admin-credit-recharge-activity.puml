@@ -1,0 +1,78 @@
+@startuml admin-credit-recharge-activity
+
+title Admin Credit Recharge Activity Diagram
+
+start
+
+:Admin submits recharge\n(userId, amount, reason);
+
+:Verify JWT authentication;
+
+if (Admin authenticated?) then (yes)
+  :Verify admin role;
+  
+  if (User is admin?) then (yes)
+    :Validate amount > 0;
+    
+    if (Amount valid?) then (yes)
+      :Find user by ID;
+      
+      if (User exists?) then (yes)
+        :Get current balance;
+        
+        :Calculate new balance\n= current + amount;
+        
+        partition "Atomic Transaction" {
+          :BEGIN TRANSACTION;
+          
+          :Update user balance:\nai_credits_balance += amount;
+          
+          :Create transaction record:\n- user_id\n- transaction_type = ADMIN_RECHARGE\n- amount (positive)\n- balance_before\n- balance_after\n- admin_id\n- reason\n- created_at;
+          
+          note right
+            Complete audit trail:
+            - Who (admin_id)
+            - What (amount)
+            - When (created_at)
+            - Why (reason)
+            - Before/After balances
+          end note
+          
+          :COMMIT TRANSACTION;
+        }
+        
+        :Return 200 OK\n{userId, newBalance, amount, reason};
+        
+        note right
+          Credits recharged successfully!
+          
+          Old balance: 45.5
+          Recharged: +100
+          New balance: 145.5
+          
+          Transaction logged for audit
+        end note
+        
+        stop
+        
+      else (no - user not found)
+        :Return 404 Not Found\n"User not found";
+        stop
+      endif
+      
+    else (no - invalid amount)
+      :Return 400 Bad Request\n"Amount must be positive";
+      stop
+    endif
+    
+  else (no - not admin)
+    :Return 403 Forbidden\n"Admin access required";
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

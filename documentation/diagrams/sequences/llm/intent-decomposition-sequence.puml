@@ -1,0 +1,173 @@
+@startuml intent-decomposition-sequence
+
+title Stage 1: Intent Decomposition (LLM Processing)
+
+participant "Project Worker" as Worker
+participant "LLM Service" as LLM
+participant "OpenAI API" as OpenAI
+participant "Credits Service" as Credits
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+note over Worker
+  Worker picked up PROJECT_INIT_INTENT job
+  from BullMQ queue
+end note
+
+Worker -> Worker: Extract job data\n{userId, projectId, userIdea}
+
+' Orphan check
+Worker -> Prisma: findUnique(user_projects,\n{where: {id: projectId}})
+activate Prisma
+Prisma -> DB: SELECT * FROM user_projects\nWHERE id = ?
+activate DB
+DB --> Prisma: Project record
+deactivate DB
+Prisma --> Worker: Project exists
+deactivate Prisma
+
+alt Project not found (orphaned)
+    Worker -> Prisma: Update job status = FAILED
+    Worker -> Worker: Log warning: "Project deleted"
+    Worker --> Worker: Exit (job failed)
+else Project exists
+    ' Credit check
+    Worker -> Prisma: findUnique(users,\n{where: {id: userId}})
+    activate Prisma
+    Prisma -> DB: SELECT ai_credits_balance\nFROM users WHERE id = ?
+    activate DB
+    DB --> Prisma: {aiCreditsBalance: 85.5}
+    deactivate DB
+    Prisma --> Worker: Balance: 85.5 credits
+    deactivate Prisma
+    
+    alt Insufficient credits
+        Worker -> Prisma: Update job status = FAILED_NO_CREDITS
+        Worker -> Worker: Log: "Insufficient credits"
+        Worker --> Worker: Exit (job failed)
+    else Sufficient credits
+        ' Build LLM prompt
+        Worker -> LLM: decomposeIntent(userIdea)
+        activate LLM
+        
+        LLM -> LLM: Build prompt template
+        note right
+          System: "You are a research assistant..."
+          User: "Analyze this research idea: {userIdea}"
+          
+          Extract:
+          1. Problem Statement
+          2. Methodologies
+          3. Application Domains
+          4. Constraints
+          5. Contribution Types
+          6. Keywords
+          
+          Return JSON format.
+        end note
+        
+        ' Call OpenAI
+        LLM -> OpenAI: POST /v1/chat/completions\n{model: "gpt-4o", messages: [...]}
+        activate OpenAI
+        
+        OpenAI -> OpenAI: Process request
+        note right: LLM processes\nresearch idea
+        
+        OpenAI --> LLM: Response\n{choices, usage: {inputTokens, outputTokens}}
+        deactivate OpenAI
+        
+        LLM -> LLM: Parse JSON response
+        LLM --> Worker: {problemStatement, methodologies[],\napplicationDomains[], constraints[],\ncontributionTypes[], keywordsSeed[],\nusage: {inputTokens: 850, outputTokens: 420}}
+        deactivate LLM
+        
+        ' Calculate cost
+        Worker -> Credits: calculateCost(usage)
+        activate Credits
+        
+        Credits -> Prisma: findFirst(llm_model_pricing,\n{where: {modelName: "gpt-4o", isLatest: true}})
+        activate Prisma
+        Prisma -> DB: SELECT * FROM llm_model_pricing\nWHERE model_name = 'gpt-4o'\nAND is_latest = true
+        activate DB
+        DB --> Prisma: {inputUsdPrice: 2.50, outputUsdPrice: 10.00}
+        deactivate DB
+        Prisma --> Credits: Pricing
+        deactivate Prisma
+        
+        Credits -> Credits: inputCost = (850 / 1,000,000) × 2.50 = $0.002125
+        Credits -> Credits: outputCost = (420 / 1,000,000) × 10.00 = $0.00420
+        Credits -> Credits: totalCostUsd = $0.006325
+        
+        Credits -> Prisma: findFirst(credits_multiplier_history,\n{where: {isActive: true}})
+        activate Prisma
+        Prisma -> DB: SELECT * FROM credits_multiplier_history\nWHERE is_active = true
+        activate DB
+        DB --> Prisma: {multiplier: 1000}
+        deactivate DB
+        Prisma --> Credits: Multiplier: 1000
+        deactivate Prisma
+        
+        Credits -> Credits: creditsToDeduct = 0.006325 × 1000 = 6.325
+        Credits --> Worker: {costUsd: 0.006325, credits: 6.325}
+        deactivate Credits
+        
+        ' Deduct credits (atomic transaction)
+        Worker -> Prisma: $transaction([...])
+        activate Prisma
+        note right: Atomic transaction:\n1. Deduct credits\n2. Log usage
+        
+        Prisma -> DB: BEGIN TRANSACTION
+        activate DB
+        
+        Prisma -> DB: UPDATE users\nSET ai_credits_balance = ai_credits_balance - 6.325\nWHERE id = ?
+        DB --> Prisma: Balance updated
+        
+        Prisma -> DB: INSERT INTO llm_usage_logs\n(user_id, project_id, operation_type,\nmodel_name, input_tokens, output_tokens,\ntotal_cost_usd, ...)
+        DB --> Prisma: Usage logged
+        
+        Prisma -> DB: COMMIT TRANSACTION
+        deactivate DB
+        Prisma --> Worker: Transaction successful
+        deactivate Prisma
+        
+        ' Update project with results
+        Worker -> Prisma: update(user_projects,\n{where: {id: projectId},\ndata: {problemStatement, methodologies,\napplicationDomains, constraints,\ncontributionTypes, keywordsSeed,\nintentProcessedStatus: EVALUATED}})
+        activate Prisma
+        Prisma -> DB: UPDATE user_projects\nSET problem_statement = ?,\nmethodologies = ?,\n...,\nintent_processed_status = 'evaluated'\nWHERE id = ?
+        activate DB
+        DB --> Prisma: Project updated
+        deactivate DB
+        Prisma --> Worker: Success
+        deactivate Prisma
+        
+        ' Update job status
+        Worker -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {status: COMPLETED}})
+        activate Prisma
+        Prisma -> DB: UPDATE background_jobs\nSET status = 'COMPLETED'\nWHERE id = ?
+        activate DB
+        DB --> Prisma: Job updated
+        deactivate DB
+        Prisma --> Worker: Success
+        deactivate Prisma
+        
+        ' Create Stage 2 job
+        Worker -> Prisma: create(background_jobs,\n{userId, projectId,\njobType: PROJECT_INIT_QUERY,\nstatus: PENDING})
+        activate Prisma
+        Prisma -> DB: INSERT INTO background_jobs\n(user_id, project_id, job_type, status)
+        activate DB
+        DB --> Prisma: Job created
+        deactivate DB
+        Prisma --> Worker: Stage 2 job ID
+        deactivate Prisma
+        
+        Worker -> Worker: Add Stage 2 job to BullMQ queue
+        
+        note over Worker
+          Stage 1 completed successfully!
+          Credits deducted: 6.325
+          New balance: 79.175
+          Stage 2 job queued
+        end note
+    end
+end
+
+@enduml

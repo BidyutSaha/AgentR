@@ -1,0 +1,90 @@
+@startuml project-export-sequence
+
+title Project Export to Excel Flow
+
+actor User
+participant "API Gateway" as API
+participant "Project Controller" as Controller
+participant "Project Service" as Service
+participant "Excel Service" as Excel
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+User -> API: GET /v1/user-projects/:projectId/export\nAuthorization: Bearer {accessToken}
+activate API
+
+API -> API: Verify JWT token
+
+API -> Controller: exportProject(req, res)
+activate Controller
+
+Controller -> Service: exportProjectToExcel(userId, projectId)
+activate Service
+
+' Get project with all data
+Service -> Prisma: findUnique(user_projects,\n{where: {id: projectId},\ninclude: {papers: true}})
+activate Prisma
+Prisma -> DB: SELECT up.*, cp.*\nFROM user_projects up\nLEFT JOIN candidate_papers cp ON up.id = cp.project_id\nWHERE up.id = ?
+activate DB
+DB --> Prisma: Project with papers
+deactivate DB
+Prisma --> Service: {project, papers[]}
+deactivate Prisma
+
+alt Project not found
+    Service --> Controller: 404 Not Found
+    Controller --> API: Error
+    API --> User: 404 Not Found
+else Project belongs to different user
+    Service --> Controller: 403 Forbidden
+    Controller --> API: Error
+    API --> User: 403 Forbidden
+else Project found and authorized
+    ' Generate Excel file
+    Service -> Excel: generateProjectReport(project, papers)
+    activate Excel
+    
+    Excel -> Excel: Create workbook
+    
+    ' Sheet 1: Project Overview
+    Excel -> Excel: Create "Project Overview" sheet
+    Excel -> Excel: Add project details:\n- Name, User Idea\n- Problem Statement\n- Methodologies, Domains\n- Keywords, Queries
+    
+    ' Sheet 2: Papers Summary
+    Excel -> Excel: Create "Papers Summary" sheet
+    Excel -> Excel: Add headers:\nTitle, C1 Score, C2 Score,\nSemantic Similarity, Link
+    Excel -> Excel: Add paper rows
+    
+    ' Sheet 3: Detailed Analysis
+    Excel -> Excel: Create "Detailed Analysis" sheet
+    Excel -> Excel: For each paper:\n- Title, Abstract\n- Overlap Analysis\n- C1/C2 Justifications\n- Research Gaps\n- User Novelty
+    
+    Excel -> Excel: Apply formatting:\n- Bold headers\n- Auto-fit columns\n- Freeze panes\n- Color coding (C1/C2 scores)
+    
+    Excel -> Excel: Generate buffer
+    Excel --> Service: Excel file buffer
+    deactivate Excel
+    
+    Service --> Controller: {buffer, filename}
+    deactivate Service
+    
+    Controller -> API: Set headers:\nContent-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\nContent-Disposition: attachment; filename="{projectName}_report.xlsx"
+    Controller --> API: Send file buffer
+    deactivate Controller
+    
+    API --> User: 200 OK\nExcel file download
+    deactivate API
+    
+    note over User
+      Excel file downloaded!
+      
+      Contains 3 sheets:
+      1. Project Overview
+      2. Papers Summary
+      3. Detailed Analysis
+      
+      Ready for offline review
+    end note
+end
+
+@enduml

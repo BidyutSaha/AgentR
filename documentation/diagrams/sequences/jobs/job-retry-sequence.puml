@@ -1,0 +1,161 @@
+@startuml job-retry-sequence
+
+title Job Retry & Resume Flow
+
+actor User
+participant "API Gateway" as API
+participant "Jobs Controller" as Controller
+participant "Jobs Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+participant "BullMQ" as Queue
+participant "Redis" as Redis
+
+User -> API: POST /v1/jobs/:jobId/resume\nAuthorization: Bearer {accessToken}
+activate API
+
+API -> API: Verify JWT token
+note right: Extract userId from token
+
+API -> Controller: resumeFailedJob(req, res)
+activate Controller
+
+Controller -> Service: resumeJob(userId, jobId)
+activate Service
+
+' Find failed job
+Service -> Prisma: findUnique(background_jobs,\n{where: {id: jobId},\ninclude: {user, project, paper}})
+activate Prisma
+Prisma -> DB: SELECT * FROM background_jobs\nWHERE id = ?
+activate DB
+DB --> Prisma: Job record with relations
+deactivate DB
+Prisma --> Service: {job, user, project, paper}
+deactivate Prisma
+
+alt Job not found
+    Service --> Controller: 404 Not Found
+    Controller --> API: {success: false, error: "Job not found"}
+    API --> User: 404 Not Found
+else Job found
+    ' Check job belongs to user
+    alt Job belongs to different user
+        Service --> Controller: 403 Forbidden
+        Controller --> API: {success: false, error: "Unauthorized"}
+        API --> User: 403 Forbidden
+    else Job belongs to user
+        ' Check job status
+        alt Job status is not FAILED or FAILED_NO_CREDITS
+            Service --> Controller: 400 Bad Request
+            Controller --> API: {success: false,\nerror: "Only failed jobs can be resumed"}
+            API --> User: 400 Bad Request
+        else Job is failed
+            ' Orphan check
+            Service -> Service: Check if user exists
+            note right: User must exist\n(already verified by JWT)
+            
+            alt Job type is PROJECT_INIT_INTENT or PROJECT_INIT_QUERY
+                Service -> Service: Check if project exists
+                
+                alt Project deleted (orphaned)
+                    Service --> Controller: 400 Bad Request
+                    Controller --> API: {success: false,\nerror: "Project no longer exists"}
+                    API --> User: 400 Bad Request
+                else Project exists
+                    ' Continue to credit check
+                end
+            else Job type is PAPER_SCORING
+                Service -> Service: Check if paper exists
+                
+                alt Paper deleted (orphaned)
+                    Service --> Controller: 400 Bad Request
+                    Controller --> API: {success: false,\nerror: "Paper no longer exists"}
+                    API --> User: 400 Bad Request
+                else Paper exists
+                    Service -> Service: Check if project exists
+                    
+                    alt Project deleted (orphaned)
+                        Service --> Controller: 400 Bad Request
+                        Controller --> API: {success: false,\nerror: "Project no longer exists"}
+                        API --> User: 400 Bad Request
+                    else Project exists
+                        ' Continue to credit check
+                    end
+                end
+            end
+            
+            ' Credit check
+            Service -> Prisma: findUnique(users,\n{where: {id: userId}})
+            activate Prisma
+            Prisma -> DB: SELECT ai_credits_balance\nFROM users WHERE id = ?
+            activate DB
+            DB --> Prisma: {aiCreditsBalance: 45.5}
+            deactivate DB
+            Prisma --> Service: Balance: 45.5 credits
+            deactivate Prisma
+            
+            alt Insufficient credits
+                Service --> Controller: 402 Payment Required
+                Controller --> API: {success: false,\nerror: "Insufficient credits"}
+                API --> User: 402 Payment Required
+            else Sufficient credits
+                ' Reconstruct payload from database (Redis resilience)
+                Service -> Service: Reconstruct job payload
+                note right: Rebuild payload from DB:\n- userId\n- projectId\n- paperId (if applicable)\n- userIdea (for project jobs)\n- title, abstract (for paper jobs)\n\nThis ensures job can be retried\neven if Redis data is lost
+                
+                ' Create new BullMQ job
+                Service -> Queue: Add job to queue\n{name: jobType,\ndata: reconstructedPayload}
+                activate Queue
+                Queue -> Redis: Store job payload
+                activate Redis
+                Redis --> Queue: Job stored
+                deactivate Redis
+                Queue --> Service: {newBullmqJobId}
+                deactivate Queue
+                
+                ' Update background_jobs record
+                Service -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {status: PENDING,\nbullmqJobId: newBullmqJobId,\nattempts: {increment: 1},\nfailureReason: null}})
+                activate Prisma
+                Prisma -> DB: UPDATE background_jobs\nSET status = 'PENDING',\nbullmq_job_id = ?,\nattempts = attempts + 1,\nfailure_reason = NULL\nWHERE id = ?
+                activate DB
+                note right: Increment attempts counter\nto track retry count
+                DB --> Prisma: Job updated
+                deactivate DB
+                Prisma --> Service: Updated job
+                deactivate Prisma
+                
+                Service --> Controller: {success: true,\njob: {id, status: PENDING, attempts}}
+                deactivate Service
+                
+                Controller --> API: 202 Accepted\n{success: true,\ndata: {job},\nmessage: "Job resumed successfully"}
+                deactivate Controller
+                
+                API --> User: 202 Accepted\n{job: {id, status: PENDING}}
+                deactivate API
+                
+                note over User
+                  Job resumed successfully!
+                  
+                  Can monitor status:
+                  GET /v1/jobs/:jobId
+                  
+                  Worker will pick up job
+                  and process it again
+                end note
+            end
+        end
+    end
+end
+
+note over Queue, Redis
+  BullMQ worker will pick up the retried job
+  and process it with the reconstructed payload
+  
+  Resilience features:
+  1. Orphan check ✓
+  2. Credit check ✓
+  3. Payload reconstruction ✓
+  4. Attempts tracking ✓
+end note
+
+@enduml

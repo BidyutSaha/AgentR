@@ -1,0 +1,68 @@
+@startuml token-refresh-activity
+
+title Token Refresh Activity Diagram
+
+start
+
+:User submits refresh token;
+
+:Verify JWT signature;
+
+if (Valid JWT?) then (yes)
+  :Extract payload\n(userId, tokenId);
+  
+  :Find token in database;
+  
+  if (Token found?) then (yes)
+    :Check if token revoked;
+    
+    if (Not revoked?) then (yes)
+      :Check token expiry;
+      
+      if (Not expired?) then (yes)
+        :Generate new access token\n(15 min expiry);
+        
+        :Generate new refresh token\n(7 day expiry);
+        
+        partition "Atomic Transaction" {
+          :Revoke old refresh token\n(set revoked_at = NOW());
+          
+          :Link to new token\n(replaced_by_token);
+          
+          :Create new refresh token\nrecord in database;
+          
+          :Commit transaction;
+        }
+        
+        :Return 200 OK\n{accessToken, refreshToken};
+        
+        note right
+          Token rotation complete!
+          
+          Old token now invalid
+          New tokens issued
+        end note
+        
+        stop
+        
+      else (yes - expired)
+        :Return 401 Unauthorized\n"Token expired";
+        stop
+      endif
+      
+    else (yes - revoked)
+      :Return 401 Unauthorized\n"Token revoked";
+      stop
+    endif
+    
+  else (no - not found)
+    :Return 401 Unauthorized\n"Token not found";
+    stop
+  endif
+  
+else (no - invalid JWT)
+  :Return 401 Unauthorized\n"Invalid token";
+  stop
+endif
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml job-monitoring-sequence
+
+title Job Status Monitoring Flow
+
+actor User
+participant "API Gateway" as API
+participant "Jobs Controller" as Controller
+participant "Jobs Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+User -> API: GET /v1/jobs?status=FAILED&projectId={projectId}\nAuthorization: Bearer {accessToken}
+activate API
+
+API -> API: Verify JWT token\nExtract userId
+
+API -> Controller: getUserJobs(req, res)
+activate Controller
+
+Controller -> Service: getJobs(userId, filters)
+activate Service
+
+' Build query filters
+Service -> Service: Build where clause:\n- userId (always)\n- status (if provided)\n- projectId (if provided)\n- paperId (if provided)\n- jobType (if provided)
+
+' Get jobs with relations
+Service -> Prisma: findMany(background_jobs,\n{where: filters,\ninclude: {project, paper},\norderBy: {createdAt: desc}})
+activate Prisma
+Prisma -> DB: SELECT bj.*, up.project_name, cp.title\nFROM background_jobs bj\nLEFT JOIN user_projects up ON bj.project_id = up.id\nLEFT JOIN candidate_papers cp ON bj.paper_id = cp.id\nWHERE bj.user_id = ?\nAND bj.status = 'FAILED'\nAND bj.project_id = ?\nORDER BY bj.created_at DESC
+activate DB
+DB --> Prisma: Job records
+deactivate DB
+Prisma --> Service: Jobs with relations
+deactivate Prisma
+
+' Format response
+Service -> Service: For each job:\n- Extract job details\n- Include project/paper names\n- Format timestamps\n- Include failure reason if failed
+
+Service --> Controller: {success: true,\njobs: [...],\ncount: N}
+deactivate Service
+
+Controller --> API: 200 OK\n{success: true,\ndata: {jobs, count}}
+deactivate Controller
+
+API --> User: 200 OK\n{jobs: [...]}
+deactivate API
+
+note over User
+  Job status response includes:
+  
+  For each job:
+  - Job ID, Type, Status
+  - Project name (if applicable)
+  - Paper title (if applicable)
+  - Failure reason (if failed)
+  - Attempts count
+  - Created/Updated timestamps
+  
+  User can:
+  - Monitor progress
+  - Identify failed jobs
+  - Resume failed jobs
+  - Filter by status/project/paper
+end note
+
+@enduml

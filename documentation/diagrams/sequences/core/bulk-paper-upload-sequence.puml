@@ -1,0 +1,154 @@
+@startuml bulk-paper-upload-sequence
+
+title Bulk Paper Upload (CSV) Flow
+
+actor User
+participant "API Gateway" as API
+participant "Paper Controller" as Controller
+participant "Paper Service" as Service
+participant "CSV Parser" as Parser
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+participant "BullMQ" as Queue
+participant "Redis" as Redis
+
+User -> API: POST /v1/candidate-papers/bulk-upload\nAuthorization: Bearer {accessToken}\nContent-Type: multipart/form-data\n{projectId, file: papers.csv}
+activate API
+
+API -> API: Verify JWT token
+API -> API: Parse multipart form data
+
+API -> Controller: bulkUploadPapers(req, res)
+activate Controller
+
+Controller -> Service: bulkUploadPapers(userId, projectId, csvFile)
+activate Service
+
+' Verify project
+Service -> Prisma: findUnique(user_projects,\n{where: {id: projectId}})
+activate Prisma
+Prisma -> DB: SELECT * FROM user_projects WHERE id = ?
+activate DB
+DB --> Prisma: Project
+deactivate DB
+Prisma --> Service: Project
+deactivate Prisma
+
+alt Project not found or unauthorized
+    Service --> Controller: 404/403 Error
+    Controller --> API: Error response
+    API --> User: Error
+else Project valid and Stage 1+2 completed
+    ' Parse CSV file
+    Service -> Parser: parse(csvFile)
+    activate Parser
+    
+    Parser -> Parser: Read CSV rows
+    Parser -> Parser: Validate headers\n(title, abstract, link)
+    Parser -> Parser: Validate each row
+    
+    alt CSV format invalid
+        Parser --> Service: Error: Invalid CSV format
+        Service --> Controller: 400 Bad Request
+        Controller --> API: {success: false,\nerror: "Invalid CSV format"}
+        API --> User: 400 Bad Request
+    else CSV valid
+        Parser --> Service: [{title, abstract, link}, ...]
+        deactivate Parser
+        
+        Service -> Service: Validate paper count\n(max 100 papers per upload)
+        
+        alt Too many papers
+            Service --> Controller: 400 Bad Request
+            Controller --> API: {success: false,\nerror: "Max 100 papers per upload"}
+            API --> User: 400 Bad Request
+        else Valid count
+            ' Create papers in batch
+            Service -> Prisma: createMany(candidate_papers,\n{data: papers[]})
+            activate Prisma
+            Prisma -> DB: INSERT INTO candidate_papers\n(project_id, title, abstract, link, ...)\nVALUES (...), (...), ...
+            activate DB
+            note right: Batch insert for performance
+            DB --> Prisma: Papers created
+            deactivate DB
+            Prisma --> Service: {count: N}
+            deactivate Prisma
+            
+            ' Get created paper IDs
+            Service -> Prisma: findMany(candidate_papers,\n{where: {projectId},\norderBy: {createdAt: desc},\ntake: N})
+            activate Prisma
+            Prisma -> DB: SELECT * FROM candidate_papers\nWHERE project_id = ?\nORDER BY created_at DESC\nLIMIT N
+            activate DB
+            DB --> Prisma: Paper records
+            deactivate DB
+            Prisma --> Service: Papers with IDs
+            deactivate Prisma
+            
+            ' Create background jobs for each paper
+            Service -> Service: Loop through papers
+            
+            loop For each paper
+                ' Create job record
+                Service -> Prisma: create(background_jobs,\n{userId, projectId, paperId,\njobType: PAPER_SCORING,\nstatus: PENDING})
+                activate Prisma
+                Prisma -> DB: INSERT INTO background_jobs
+                activate DB
+                DB --> Prisma: Job created
+                deactivate DB
+                Prisma --> Service: {id: jobId}
+                deactivate Prisma
+                
+                ' Create BullMQ job
+                Service -> Queue: Add job to paper queue\n{name: PAPER_SCORING,\ndata: {userId, projectId, paperId, ...}}
+                activate Queue
+                Queue -> Redis: Store job payload
+                activate Redis
+                Redis --> Queue: Job stored
+                deactivate Redis
+                Queue --> Service: {bullmqJobId}
+                deactivate Queue
+                
+                ' Update job with BullMQ ID
+                Service -> Prisma: update(background_jobs,\n{where: {id: jobId},\ndata: {bullmqJobId}})
+                activate Prisma
+                Prisma -> DB: UPDATE background_jobs\nSET bullmq_job_id = ?
+                activate DB
+                DB --> Prisma: Updated
+                deactivate DB
+                Prisma --> Service: Success
+                deactivate Prisma
+            end
+            
+            Service --> Controller: {success: true,\npapersCreated: N,\njobsCreated: N}
+            deactivate Service
+            
+            Controller --> API: 202 Accepted\n{success: true,\ndata: {papersCreated: N, jobsCreated: N},\nmessage: "Papers uploaded.\nScoring started."}
+            deactivate Controller
+            
+            API --> User: 202 Accepted\n{papersCreated: N, jobsCreated: N}
+            deactivate API
+            
+            note over User
+              Bulk upload successful!
+              
+              N papers created
+              N scoring jobs queued
+              
+              Monitor progress:
+              GET /v1/jobs?projectId={projectId}
+              
+              Workers will process jobs in parallel
+            end note
+        end
+    end
+end
+
+note over Queue, Redis
+  Multiple workers can process
+  paper scoring jobs in parallel
+  
+  Each paper scored independently
+  See: paper-scoring-sequence.puml
+end note
+
+@enduml

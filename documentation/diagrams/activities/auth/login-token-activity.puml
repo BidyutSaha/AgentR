@@ -1,0 +1,55 @@
+@startuml login-token-activity
+
+title Login & Token Management Activity Diagram
+
+start
+
+:User submits credentials\n(email, password);
+
+:Find user by email;
+
+if (User exists?) then (yes)
+  if (Email verified?) then (yes)
+    if (Account active?) then (yes)
+      :Verify password\n(bcrypt compare);
+      
+      if (Password correct?) then (yes)
+        :Generate access token\n(JWT, 15 min expiry);
+        
+        :Generate refresh token\n(JWT, 7 day expiry);
+        
+        :Save refresh token\nto database;
+        
+        :Update last login\ntimestamp;
+        
+        :Return 200 OK\n{accessToken, refreshToken, user};
+        
+        note right
+          User stores tokens:
+          - Access token in memory
+          - Refresh token in httpOnly cookie
+        end note
+        
+        stop
+        
+      else (no - incorrect password)
+        :Return 401 Unauthorized\n"Invalid credentials";
+        stop
+      endif
+      
+    else (no - inactive account)
+      :Return 403 Forbidden\n"Account inactive";
+      stop
+    endif
+    
+  else (no - not verified)
+    :Return 401 Unauthorized\n"Email not verified";
+    stop
+  endif
+  
+else (no - user not found)
+  :Return 404 Not Found\n"User not found";
+  stop
+endif
+
+@enduml

@@ -1,0 +1,87 @@
+@startuml project-creation-activity
+
+title Project Creation Activity Diagram
+
+start
+
+:User submits project\n(projectName, userIdea);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Check project name uniqueness\n(per user);
+  
+  if (Name available?) then (yes)
+    :Create project record\n(intentProcessedStatus = NOT_INITIATED);
+    
+    :Create background_jobs record\n(type = PROJECT_INIT_INTENT,\nstatus = PENDING);
+    
+    :Create BullMQ job\nwith payload;
+    
+    :Store job in Redis queue;
+    
+    :Update background_jobs\nwith BullMQ job ID;
+    
+    :Return 202 Accepted\n{project, jobId};
+    
+    note right
+      User receives:
+      - Project ID
+      - Job ID
+      
+      Can monitor:
+      GET /v1/jobs?projectId={id}
+    end note
+    
+    fork
+      :User continues;
+      stop
+    fork again
+      :Worker picks up job;
+      
+      :Process Stage 1\n(Intent Decomposition);
+      
+      note right
+        See: intent-decomposition-activity.puml
+      end note
+      
+      if (Stage 1 successful?) then (yes)
+        :Create Stage 2 job;
+        
+        :Process Stage 2\n(Query Generation);
+        
+        note right
+          See: query-generation-activity.puml
+        end note
+        
+        if (Stage 2 successful?) then (yes)
+          :Project fully processed;
+          
+          note right
+            Project ready for papers!
+            User can add candidate papers
+            for scoring
+          end note
+          
+          stop
+        else (no - Stage 2 failed)
+          :Mark project as failed;
+          stop
+        endif
+      else (no - Stage 1 failed)
+        :Mark project as failed;
+        stop
+      endif
+    end fork
+    
+  else (no - name exists)
+    :Return 409 Conflict\n"Project name already exists";
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

@@ -1,0 +1,64 @@
+@startuml user-registration-activity
+
+title User Registration Activity Diagram
+
+start
+
+:User submits registration form\n(email, password, name);
+
+:Validate email format;
+
+if (Email format valid?) then (yes)
+  :Check email uniqueness;
+  
+  if (Email available?) then (yes)
+    :Validate password strength\n(8+ chars, upper, lower, number, special);
+    
+    if (Password strong?) then (yes)
+      :Hash password\n(bcrypt, cost 12);
+      
+      :Get default credits\nfrom active config;
+      
+      partition "Atomic Transaction" {
+        :Create user record\n(isVerified = false);
+        
+        :Create credits transaction\n(SIGNUP_DEFAULT);
+        
+        :Set user balance\n= default credits;
+      }
+      
+      :Generate UUID verification token;
+      
+      :Save token to database\n(expires in 24 hours);
+      
+      :Queue verification email job;
+      
+      :Return success response\n(201 Created);
+      
+      fork
+        :Continue user flow;
+      fork again
+        :Email worker picks up job;
+        :Generate verification link;
+        :Send email via SMTP;
+        :Mark job as completed;
+      end fork
+      
+      stop
+      
+    else (no - weak password)
+      :Return 400 Bad Request\n"Password too weak";
+      stop
+    endif
+    
+  else (no - email exists)
+    :Return 409 Conflict\n"Email already registered";
+    stop
+  endif
+  
+else (no - invalid format)
+  :Return 400 Bad Request\n"Invalid email format";
+  stop
+endif
+
+@enduml

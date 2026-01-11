@@ -1,0 +1,93 @@
+@startuml paper-addition-activity
+
+title Paper Addition Activity Diagram
+
+start
+
+:User submits paper\n(projectId, title, abstract, link);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Find project by ID;
+  
+  if (Project exists?) then (yes)
+    :Check project belongs to user;
+    
+    if (Project belongs to user?) then (yes)
+      :Check project processing status;
+      
+      if (intentProcessedStatus = EVALUATED\nAND searchQueryProcessedStatus = EVALUATED?) then (yes)
+        :Create paper record\n(isProcessedByLlm = false);
+        
+        :Create background_jobs record\n(type = PAPER_SCORING,\nstatus = PENDING);
+        
+        :Create BullMQ job\nwith payload;
+        
+        :Store job in Redis queue;
+        
+        :Update background_jobs\nwith BullMQ job ID;
+        
+        :Return 202 Accepted\n{paper, jobId};
+        
+        note right
+          User receives:
+          - Paper ID
+          - Job ID
+          
+          Can monitor:
+          GET /v1/jobs?paperId={id}
+        end note
+        
+        fork
+          :User continues;
+          stop
+        fork again
+          :Worker picks up job;
+          
+          :Process Stage 3\n(Paper Scoring);
+          
+          note right
+            See: paper-scoring-activity.puml
+          end note
+          
+          if (Scoring successful?) then (yes)
+            :Paper scored with\nC1/C2 analysis;
+            
+            note right
+              Paper now has:
+              - Semantic similarity
+              - Overlap analysis
+              - C1/C2 scores
+              - Research gaps
+              - User novelty
+            end note
+            
+            stop
+          else (no - scoring failed)
+            :Mark job as failed;
+            stop
+          endif
+        end fork
+        
+      else (no - not ready)
+        :Return 400 Bad Request\n"Project must complete Stage 1+2 first";
+        stop
+      endif
+      
+    else (no - unauthorized)
+      :Return 403 Forbidden\n"Unauthorized";
+      stop
+    endif
+    
+  else (no - not found)
+    :Return 404 Not Found\n"Project not found";
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml

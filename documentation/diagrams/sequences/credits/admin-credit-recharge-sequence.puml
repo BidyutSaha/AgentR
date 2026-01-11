@@ -1,0 +1,94 @@
+@startuml admin-credit-recharge-sequence
+
+title Admin Credit Recharge Flow
+
+actor Admin
+participant "API Gateway" as API
+participant "Admin Controller" as Controller
+participant "Credits Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+Admin -> API: POST /v1/admin/credits/recharge\nAuthorization: Bearer {adminToken}\n{userId, amount, reason}
+activate API
+
+API -> API: Verify JWT token
+API -> API: Verify admin role
+
+API -> Controller: rechargeUserCredits(req, res)
+activate Controller
+
+Controller -> Service: rechargeCredits(adminId, userId, amount, reason)
+activate Service
+
+' Validate amount
+Service -> Service: Validate amount > 0
+
+alt Invalid amount
+    Service --> Controller: 400 Bad Request
+    Controller --> API: {success: false, error: "Amount must be positive"}
+    API --> Admin: 400 Bad Request
+else Valid amount
+    ' Get user current balance
+    Service -> Prisma: findUnique(users, {where: {id: userId}})
+    activate Prisma
+    Prisma -> DB: SELECT * FROM users WHERE id = ?
+    activate DB
+    DB --> Prisma: User record
+    deactivate DB
+    Prisma --> Service: {id, aiCreditsBalance: 45.5}
+    deactivate Prisma
+    
+    alt User not found
+        Service --> Controller: 404 Not Found
+        Controller --> API: {success: false, error: "User not found"}
+        API --> Admin: 404 Not Found
+    else User found
+        Service -> Service: balanceBefore = 45.5
+        Service -> Service: balanceAfter = 45.5 + amount
+        
+        ' Atomic transaction: Update balance + Log transaction
+        Service -> Prisma: $transaction([...])
+        activate Prisma
+        note right: Atomic transaction:\n1. Update user balance\n2. Create transaction record
+        
+        Prisma -> DB: BEGIN TRANSACTION
+        activate DB
+        
+        ' Update user balance
+        Prisma -> DB: UPDATE users\nSET ai_credits_balance = ai_credits_balance + ?\nWHERE id = ?
+        note right: amount = 100 credits
+        DB --> Prisma: Balance updated (145.5)
+        
+        ' Create transaction record
+        Prisma -> DB: INSERT INTO user_credits_transactions\n(user_id, transaction_type, amount,\nbalance_before, balance_after,\nadmin_id, reason, created_at)
+        note right: Full audit trail:\n- Who (admin_id)\n- What (amount)\n- When (created_at)\n- Why (reason)
+        DB --> Prisma: Transaction logged
+        
+        Prisma -> DB: COMMIT TRANSACTION
+        deactivate DB
+        Prisma --> Service: {user, transaction}
+        deactivate Prisma
+        
+        Service --> Controller: {success: true,\nnewBalance: 145.5,\ntransaction}
+        deactivate Service
+        
+        Controller --> API: 200 OK\n{success: true,\ndata: {userId, newBalance: 145.5,\namount: 100, reason},\nmessage: "Credits recharged successfully"}
+        deactivate Controller
+        
+        API --> Admin: 200 OK\n{newBalance: 145.5}
+        deactivate API
+        
+        note over Admin
+          Credits recharged successfully!
+          
+          Old balance: 45.5
+          Recharged: +100
+          New balance: 145.5
+          
+          Transaction logged for audit
+        end note
+    end
+end
+
+@enduml

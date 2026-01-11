@@ -1,0 +1,105 @@
+@startuml config-update-sequence
+
+title Configuration Update Flow (Type 2 SCD)
+
+actor Admin
+participant "API Gateway" as API
+participant "Config Controller" as Controller
+participant "Config Service" as Service
+participant "Prisma ORM" as Prisma
+database "PostgreSQL" as DB
+
+Admin -> API: PUT /v1/admin/system-config/credits-multiplier\nAuthorization: Bearer {adminToken}\n{multiplier: 1200, description: "Increased rate"}
+activate API
+
+API -> API: Verify JWT token\nVerify admin role
+
+API -> Controller: updateCreditsMultiplier(req, res)
+activate Controller
+
+Controller -> Service: updateMultiplier(adminId, newMultiplier, description)
+activate Service
+
+' Validate new multiplier
+Service -> Service: Validate multiplier > 0
+
+alt Invalid multiplier
+    Service --> Controller: 400 Bad Request
+    Controller --> API: {success: false, error: "Invalid multiplier"}
+    API --> Admin: 400 Bad Request
+else Valid multiplier
+    ' Get current active multiplier
+    Service -> Prisma: findFirst(credits_multiplier_history,\n{where: {isActive: true}})
+    activate Prisma
+    Prisma -> DB: SELECT * FROM credits_multiplier_history\nWHERE is_active = true
+    activate DB
+    DB --> Prisma: Current record {multiplier: 1000}
+    deactivate DB
+    Prisma --> Service: Current config
+    deactivate Prisma
+    
+    ' Type 2 SCD: Deactivate old, create new
+    Service -> Prisma: $transaction([...])
+    activate Prisma
+    note right: Type 2 Slowly Changing Dimension:\n1. Deactivate current record\n2. Set effective_to = NOW()\n3. Create new record\n4. Set effective_from = NOW()\n\nPreserves complete history
+    
+    Prisma -> DB: BEGIN TRANSACTION
+    activate DB
+    
+    ' Deactivate current record
+    Prisma -> DB: UPDATE credits_multiplier_history\nSET is_active = false,\neffective_to = NOW()\nWHERE is_active = true
+    note right: Old record preserved:\nmultiplier: 1000\neffective_from: 2026-01-01\neffective_to: 2026-01-11 (NOW)\nis_active: false
+    DB --> Prisma: Old record deactivated
+    
+    ' Create new record
+    Prisma -> DB: INSERT INTO credits_multiplier_history\n(usd_to_credits_multiplier, description,\nupdated_by, effective_from,\neffective_to, is_active)
+    note right: New record:\nmultiplier: 1200\neffective_from: 2026-01-11 (NOW)\neffective_to: NULL\nis_active: true\nupdated_by: admin_id
+    DB --> Prisma: New record created
+    
+    Prisma -> DB: COMMIT TRANSACTION
+    deactivate DB
+    Prisma --> Service: {oldConfig, newConfig}
+    deactivate Prisma
+    
+    Service --> Controller: {success: true,\noldMultiplier: 1000,\nnewMultiplier: 1200,\neffectiveFrom: NOW()}
+    deactivate Service
+    
+    Controller --> API: 200 OK\n{success: true,\ndata: {config},\nmessage: "Multiplier updated successfully"}
+    deactivate Controller
+    
+    API --> Admin: 200 OK\n{newMultiplier: 1200}
+    deactivate API
+    
+    note over Admin
+      Configuration updated!
+      
+      Old: 1 USD = 1000 Credits
+      New: 1 USD = 1200 Credits
+      
+      Effective immediately
+      
+      Historical data preserved:
+      - Old rate: 1000 (2026-01-01 to 2026-01-11)
+      - New rate: 1200 (2026-01-11 onwards)
+      
+      Existing USD costs in llm_usage_logs
+      remain accurate (not affected)
+    end note
+end
+
+note over DB
+  Type 2 SCD Benefits:
+  
+  1. Complete audit trail
+  2. Historical accuracy
+  3. No data loss
+  4. Effective date tracking
+  5. Easy rollback (reactivate old record)
+  
+  Same pattern used for:
+  - credits_multiplier_history
+  - default_credits_history
+  - llm_model_pricing (with is_latest flag)
+end note
+
+@enduml

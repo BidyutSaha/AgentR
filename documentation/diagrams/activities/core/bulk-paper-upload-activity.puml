@@ -1,0 +1,101 @@
+@startuml bulk-paper-upload-activity
+
+title Bulk Paper Upload (CSV) Activity Diagram
+
+start
+
+:User uploads CSV file\n(projectId, file);
+
+:Verify JWT authentication;
+
+if (User authenticated?) then (yes)
+  :Find project by ID;
+  
+  if (Project exists\nand belongs to user?) then (yes)
+    :Check project ready\n(Stage 1+2 completed);
+    
+    if (Project ready?) then (yes)
+      :Parse CSV file;
+      
+      if (CSV format valid?) then (yes)
+        :Validate CSV headers\n(title, abstract, link);
+        
+        if (Headers correct?) then (yes)
+          :Validate each row;
+          
+          :Count papers;
+          
+          if (Count <= 100?) then (yes)
+            :Create papers in batch\n(INSERT multiple rows);
+            
+            :Get created paper IDs;
+            
+            :Loop through papers;
+            
+            repeat
+              :Create background_jobs record\n(PAPER_SCORING);
+              
+              :Create BullMQ job;
+              
+              :Update job with BullMQ ID;
+              
+            repeat while (More papers?) is (yes)
+            ->no;
+            
+            :Return 202 Accepted\n{papersCreated: N, jobsCreated: N};
+            
+            note right
+              Bulk upload successful!
+              
+              N papers created
+              N scoring jobs queued
+              
+              Monitor progress:
+              GET /v1/jobs?projectId={id}
+            end note
+            
+            fork
+              :User monitors progress;
+              stop
+            fork again
+              :Multiple workers process\njobs in parallel;
+              
+              note right
+                Each paper scored independently
+                Parallel processing for speed
+              end note
+              
+              stop
+            end fork
+            
+          else (no - too many)
+            :Return 400 Bad Request\n"Max 100 papers per upload";
+            stop
+          endif
+          
+        else (no - wrong headers)
+          :Return 400 Bad Request\n"Invalid CSV headers";
+          stop
+        endif
+        
+      else (no - invalid format)
+        :Return 400 Bad Request\n"Invalid CSV format";
+        stop
+      endif
+      
+    else (no - not ready)
+      :Return 400 Bad Request\n"Project must complete Stage 1+2";
+      stop
+    endif
+    
+  else (no - not found/unauthorized)
+    :Return 404/403 Error;
+    stop
+  endif
+  
+else (no - not authenticated)
+  :Return 401 Unauthorized;
+  stop
+endif
+
+@enduml
