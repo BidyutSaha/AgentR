@@ -23,6 +23,7 @@ Complete installation and configuration guide for the Literature Review System.
 - **Node.js**: v18.x or higher
 - **npm**: v9.x or higher
 - **PostgreSQL**: v14.x or higher
+- **Redis**: v6.x or higher (Required for Background Jobs)
 - **Git**: Latest version
 
 ### Required Accounts
@@ -55,6 +56,7 @@ npm install
 ```
 
 This will install all required packages including:
+
 - Prisma (ORM)
 - TypeScript
 - Zod (validation)
@@ -65,9 +67,9 @@ This will install all required packages including:
 
 ---
 
-## Redis Setup (Required for Background Jobs)
+## Redis Setup (REQUIRED)
 
-The system uses Redis for managing background job queues (emailing, scoring, etc.).
+The system **REQUIRES** Redis for managing background job queues (emailing, scoring, etc.). The application will not start without a Redis connection.
 
 ### Option A: Using Docker (Recommended)
 
@@ -94,6 +96,7 @@ The system uses Redis for managing background job queues (emailing, scoring, etc
 ### 1. Install PostgreSQL
 
 **Windows**:
+
 ```bash
 # Download from https://www.postgresql.org/download/windows/
 # Run installer and follow prompts
@@ -101,12 +104,14 @@ The system uses Redis for managing background job queues (emailing, scoring, etc
 ```
 
 **Mac** (using Homebrew):
+
 ```bash
 brew install postgresql@14
 brew services start postgresql@14
 ```
 
 **Linux** (Ubuntu/Debian):
+
 ```bash
 sudo apt update
 sudo apt install postgresql postgresql-contrib
@@ -146,10 +151,24 @@ npx prisma studio
 ```
 
 This will create the following tables:
+
 - `users` - User accounts
 - `user_projects` - Research projects
+- `candidate_papers` - Research papers
+- `background_jobs` - Job queue persistence
+- `llm_usage_logs` - Cost tracking
 - `verification_tokens` - Email verification tokens
 - `password_reset_tokens` - Password reset tokens
+
+### 4. Seed Database (MANDATORY)
+
+You MUST seed the pricing data for LLM cost calculations to work.
+
+```bash
+node scripts/seed-pricing.js
+```
+
+_Creates pricing entries for GPT-4o, GPT-4o-mini, and other models._
 
 ---
 
@@ -208,6 +227,10 @@ FRONTEND_URL=http://localhost:3000
 # CORS Configuration
 CORS_ORIGIN=http://localhost:3000
 
+# Redis Configuration (Required)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
 # Logging
 LOG_LEVEL=info
 ```
@@ -234,6 +257,7 @@ npm run dev
 ```
 
 Expected output:
+
 ```
 🚀 Server running on http://localhost:5000
 📝 Environment: development
@@ -266,11 +290,13 @@ npm run dev
 **Browser**: Open http://localhost:5000/v1/health
 
 **curl**:
+
 ```bash
 curl http://localhost:5000/v1/health
 ```
 
 **Expected Response**:
+
 ```json
 {
   "success": true,
@@ -295,6 +321,7 @@ Should open http://localhost:5555 showing your database tables.
 ### 3. Test Registration
 
 **Using curl**:
+
 ```bash
 curl -X POST http://localhost:5000/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -307,6 +334,7 @@ curl -X POST http://localhost:5000/v1/auth/register \
 ```
 
 **Expected Response**:
+
 ```json
 {
   "success": true,
@@ -335,17 +363,20 @@ You should receive a verification email at the registered address.
 **Error**: `Can't reach database server`
 
 **Solutions**:
+
 1. Verify PostgreSQL is running:
+
    ```bash
    # Windows
    pg_ctl status
-   
+
    # Mac/Linux
    brew services list  # Mac
    sudo systemctl status postgresql  # Linux
    ```
 
 2. Check DATABASE_URL format:
+
    ```
    postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=SCHEMA
    ```
@@ -360,17 +391,20 @@ You should receive a verification email at the registered address.
 **Error**: `Port 5000 is already in use`
 
 **Solutions**:
+
 1. Change port in `.env`:
+
    ```bash
    PORT=5001
    ```
 
 2. Or kill process using port 5000:
+
    ```bash
    # Windows
    netstat -ano | findstr :5000
    taskkill /PID <PID> /F
-   
+
    # Mac/Linux
    lsof -ti:5000 | xargs kill -9
    ```
@@ -380,6 +414,7 @@ You should receive a verification email at the registered address.
 **Error**: `Invalid API key`
 
 **Solutions**:
+
 1. Verify API key is correct
 2. Check OpenAI account has credits
 3. Ensure no extra spaces in `.env` file
@@ -389,6 +424,7 @@ You should receive a verification email at the registered address.
 **Error**: `SMTP connection failed`
 
 **Solutions**:
+
 1. Verify SMTP credentials
 2. Check Gmail app password (not regular password)
 3. Verify SMTP_PORT (587 for TLS, 465 for SSL)
@@ -399,12 +435,15 @@ You should receive a verification email at the registered address.
 **Error**: `Migration failed`
 
 **Solutions**:
+
 1. Reset database:
+
    ```bash
    npx prisma migrate reset
    ```
 
 2. Generate Prisma Client:
+
    ```bash
    npx prisma generate
    ```

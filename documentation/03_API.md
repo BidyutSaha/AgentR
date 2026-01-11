@@ -19,69 +19,71 @@ Complete API reference for the Literature Review System.
 7. [POST /auth/refresh](#post-v1authrefresh) - Refresh access token
 
 ### Authentication (Protected)
-8. [POST /auth/change-password](#post-v1authchange-password) - Change password
-9. [POST /auth/logout](#post-v1authlogout) - Logout
+8. [GET /auth/profile](#get-v1authprofile) - Get user profile
+9. [POST /auth/change-password](#post-v1authchange-password) - Change password
+10. [POST /auth/logout](#post-v1authlogout) - Logout
 
 ### User Projects (Protected)
-10. [POST /v1/user-projects](#post-v1user-projects) - Create project
-11. [GET /v1/user-projects/:id](#get-v1user-projectsid) - Get project by ID
-12. [GET /v1/user-projects/user/:userId](#get-v1user-projectsuseruserid) - Get all user projects
-13. [PATCH /v1/user-projects/:id](#patch-v1user-projectsid) - Update project
-14. [DELETE /v1/user-projects/:id](#delete-v1user-projectsid) - Delete project
-15. [GET /v1/user-projects/:projectId/export](#get-v1user-projectsprojectidexport) - Export project report (Excel)
+11. [POST /v1/user-projects/create-project](#post-v1user-projectscreate-project) - Create project
+12. [GET /v1/user-projects/my-projects](#get-v1user-projectsmy-projects) - Get my projects
+13. [GET /v1/user-projects/user/:userId](#get-v1user-projectsuseruserid) - Get projects by user ID
+14. [GET /v1/user-projects/:projectId](#get-v1user-projectsprojectid) - Get project by ID
+15. [PUT /v1/user-projects/:projectId](#put-v1user-projectsprojectid) - Update project
+16. [DELETE /v1/user-projects/:projectId](#delete-v1user-projectsprojectid) - Delete project
+17. [GET /v1/user-projects/:projectId/export](#get-v1user-projectsprojectidexport) - Export project report (Excel)
 
 ### Candidate Papers (Protected)
-16. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
-16. [POST /v1/user-projects/:projectId/papers/bulk-upload](#post-v1user-projectsprojectidpapersbulk-upload) - Bulk upload papers (CSV)
-17. [GET /v1/user-projects/papers/bulk-upload-template](#get-v1user-projectspapersbulk-upload-template) - Download CSV template
-18. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
-19. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
-20. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
-21. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
+18. [POST /v1/user-projects/:projectId/papers](#post-v1user-projectsprojectidpapers) - Add paper to project
+19. [POST /v1/user-projects/:projectId/papers/bulk-upload](#post-v1user-projectsprojectidpapersbulk-upload) - Bulk upload papers (CSV)
+20. [GET /v1/user-projects/papers/bulk-upload-template](#get-v1user-projectspapersbulk-upload-template) - Download CSV template
+21. [GET /v1/user-projects/:projectId/papers](#get-v1user-projectsprojectidpapers) - Get all papers for project
+22. [GET /v1/papers/:paperId](#get-v1paperspaperid) - Get single paper
+23. [PATCH /v1/papers/:paperId](#patch-v1paperspaperid) - Update paper
+24. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
 
 ### Background Jobs (Protected)
-22. [GET /v1/jobs](#get-v1jobs) - Get user jobs
-23. [POST /v1/jobs/:jobId/resume](#post-v1jobsjobidresume) - Resume failed job
-24. [POST /v1/jobs/resume-all](#post-v1jobsresume-all) - Resume all failed jobs
+25. [GET /v1/jobs](#get-v1jobs) - Get user jobs
+26. [POST /v1/jobs/:jobId/resume](#post-v1jobsjobidresume) - Resume failed job
+27. [POST /v1/jobs/resume-all](#post-v1jobsresume-all) - Resume all failed jobs
 
 ### LLM Pipeline (Protected)
-25. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-26. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-27. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+28. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+29. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+30. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### LLM Usage Tracking - USD (Protected)
-28. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
-29. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
-30. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
+31. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
+32. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
+33. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
 
 ### LLM Usage Tracking - AI Credits (Protected)
-31. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
-32. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
-33. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
-34. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
+34. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
+35. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
+36. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
+37. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
 
 ### Model Pricing Management (Admin Only)
-35. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
-36. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
-37. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
-38. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
+38. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
+39. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
+40. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
+41. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
 
 ### Health Check (Public)
-39. [GET /v1/health](#get-v1health) - Health check
+42. [GET /v1/health](#get-v1health) - Health check
 
 ### System Configuration (Admin Only)
-40. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
-41. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
-42. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
-43. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
-44. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
+43. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
+44. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
+45. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
+46. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
+47. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
 
 ### Credits Management (Admin Only)
-45. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
-46. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
-47. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
-48. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
-49. [GET /v1/admin/credits/wallet-transaction-history](#get-v1admincreditswallet-transaction-history) - Global wallet transaction history
+48. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
+49. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
+50. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
+51. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
+52. [GET /v1/admin/credits/wallet-transaction-history](#get-v1admincreditswallet-transaction-history) - Global wallet transaction history
 
 
 ---
@@ -784,6 +786,100 @@ Content-Type: application/json
 
 ---
 
+### GET /v1/auth/profile
+
+**Description**: Get the authenticated user's profile information.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Request Body**: None
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      isVerified: boolean;
+      aiCreditsBalance: number;
+      createdAt: string;
+    };
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/auth/profile
+Authorization: Bearer <token>
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "john.doe@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "isVerified": true,
+      "aiCreditsBalance": 150.50,
+      "createdAt": "2025-12-31T12:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Authentication failed | Missing/invalid token |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple read operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns current user information based on JWT token
+- Includes AI Credits balance for display in UI
+- Does not expose sensitive information (password hash, tokens)
+
+---
+
 ### POST /v1/auth/change-password
 
 **Description**: Change password for a logged-in user.
@@ -961,7 +1057,7 @@ Content-Type: application/json
 
 ## User Projects Endpoints
 
-### POST /v1/user-projects
+### POST /v1/user-projects/create-project
 
 **Description**: Create a new research project and initiate background analysis (Intent Decomposition & Query Generation).
 
@@ -1012,7 +1108,7 @@ Content-Type: application/json
 #### Sample Request
 
 ```bash
-POST /v1/user-projects
+POST /v1/user-projects/create-project
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Content-Type: application/json
 
@@ -1074,7 +1170,107 @@ Content-Type: application/json
 
 ---
 
-### GET /v1/user-projects/:id
+### GET /v1/user-projects/my-projects
+
+**Description**: Get all projects for the authenticated user.
+
+**Authentication**: Required (JWT)  
+**Roles**: Authenticated User
+
+---
+
+#### Input Structure
+
+**Path Parameters**: None
+
+**Headers**:
+- `Authorization: Bearer <accessToken>` (required)
+
+---
+
+#### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    projects: Array<{
+      id: string;
+      userId: string;
+      projectName: string;
+      userIdea: string;
+      intentProcessedStatus: string;
+      searchQueryProcessedStatus: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    count: number;
+  };
+}
+```
+
+---
+
+#### Sample Request
+
+```bash
+GET /v1/user-projects/my-projects
+Authorization: Bearer <token>
+```
+
+---
+
+#### Sample Response
+
+**Success (200 OK)**:
+```json
+{
+  "success": true,
+  "data": {
+    "projects": [
+      {
+        "id": "proj_550e8400-e29b-41d4-a716-446655440000",
+        "userId": "user_123e4567-e89b-12d3-a456-426614174000",
+        "projectName": "AI-Powered Literature Review",
+        "userIdea": "This research explores...",
+        "intentProcessedStatus": "EVALUATED",
+        "searchQueryProcessedStatus": "EVALUATED",
+        "createdAt": "2025-12-31T12:00:00.000Z",
+        "updatedAt": "2025-12-31T12:05:00.000Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+---
+
+#### Error Cases
+
+| Status | Error Code | Description | Example |
+|--------|------------|-------------|---------|
+| 401 | `UNAUTHORIZED` | Missing/invalid token | Token expired |
+| 500 | `INTERNAL_ERROR` | Server error | Database error |
+
+---
+
+#### Diagrams
+
+**Diagrams**: Not required (simple read operation)
+
+---
+
+#### Business Logic Notes
+
+- Returns all projects owned by the authenticated user
+- Projects are ordered by `createdAt` descending (newest first)
+- Includes processing status for both Intent and Query stages
+
+---
+
+### GET /v1/user-projects/:projectId
 
 **Description**: Get a specific project by ID.
 

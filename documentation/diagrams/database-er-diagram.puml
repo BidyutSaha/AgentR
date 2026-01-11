@@ -4,7 +4,7 @@
 ' Literature Review System - Database ER Diagram
 ' ============================================================================
 ' This diagram shows all database tables and their relationships
-' Last Updated: 2026-01-03
+' Last Updated: 2026-01-11
 ' ============================================================================
 
 ' Entity definitions
@@ -63,6 +63,7 @@ entity "user_projects" as projects {
   * user_idea : TEXT
   
   ' Stage 1: Intent
+  problem_statement : TEXT
   methodologies : TEXT[]
   application_domains : TEXT[]
   constraints : TEXT[]
@@ -91,6 +92,7 @@ entity "candidate_papers" as papers {
   semantic_similarity : DECIMAL(5,4)
   similarity_model_name : VARCHAR(100)
   problem_overlap : VARCHAR(20)
+  method_overlap : VARCHAR(20)
   domain_overlap : VARCHAR(20)
   constraint_overlap : VARCHAR(20)
   c1_score : DECIMAL(5,2)
@@ -101,8 +103,11 @@ entity "candidate_papers" as papers {
   c2_justification : TEXT
   c2_contribution_type : TEXT
   c2_relevance_areas : TEXT
+  c2_strengths : TEXT
+  c2_weaknesses : TEXT
   research_gaps : TEXT
   user_novelty : TEXT
+  candidate_advantage : TEXT
   model_used : VARCHAR(100)
   input_tokens_used : INTEGER
   output_tokens_used : INTEGER
@@ -191,6 +196,21 @@ entity "user_credits_transactions" as transactions {
   * created_at : TIMESTAMP
 }
 
+entity "background_jobs" as jobs {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  project_id : UUID <<FK>>
+  paper_id : UUID <<FK>>
+  * job_type : ENUM
+  bull_job_id : VARCHAR(255)
+  * status : ENUM
+  failure_reason : TEXT
+  * attempts : INTEGER
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
 ' Relationships
 
 users ||--o{ email_tokens : "has"
@@ -199,9 +219,12 @@ users ||--o{ refresh_tokens : "has"
 users ||--o{ projects : "owns"
 users ||--o{ llm_logs : "generates"
 users ||--o{ transactions : "has"
+users ||--o{ jobs : "initiates"
 projects ||--o{ papers : "contains"
 projects ||--o{ llm_logs : "tracks"
+projects ||--o{ jobs : "has"
 papers ||--o{ llm_logs : "tracks"
+papers ||--o{ jobs : "has"
 
 ' Notes
 
@@ -299,6 +322,17 @@ note right of transactions
   - Admin actions tracked
   - Complete audit trail
   - LLM deductions NOT here (in llm_logs)
+end note
+
+note right of jobs
+  **Background Jobs Tracking** (NEW)
+  - Tracks asynchronous job processing
+  - Job Types: PROJECT_INIT_INTENT, PROJECT_INIT_QUERY, PAPER_SCORING, SEND_EMAIL
+  - Job Status: PENDING, PROCESSING, COMPLETED, FAILED, FAILED_NO_CREDITS
+  - Links to BullMQ job ID
+  - Tracks retry attempts
+  - Stores failure reasons
+  - Used for job recovery and monitoring
 end note
 
 @enduml

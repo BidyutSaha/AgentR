@@ -1,0 +1,1449 @@
+openapi: 3.0.3
+info:
+  title: Literature Review System API - Complete
+  description: |
+    Complete API specification for the AI-Powered Literature Review System with all 52 endpoints.
+    
+    **Features:**
+    - User authentication and authorization
+    - Research project management
+    - Paper analysis with LLM
+    - AI Credits tracking and admin management
+    - Background job monitoring
+    - System configuration
+    
+    **Authentication**: JWT Bearer tokens
+    **Base URL**: http://localhost:5000/v1
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:5000/v1
+    description: Development server
+  - url: https://api.example.com/v1
+    description: Production server (TBD)
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization (10 endpoints)
+  - name: User Projects
+    description: Research project management (7 endpoints)
+  - name: Candidate Papers
+    description: Paper management and bulk upload (7 endpoints)
+  - name: Background Jobs
+    description: Asynchronous job tracking (3 endpoints)
+  - name: LLM Pipeline
+    description: LLM processing stages (3 endpoints)
+  - name: LLM Usage
+    description: Usage tracking and billing (6 endpoints)
+  - name: Credits
+    description: AI Credits management (1 endpoint)
+  - name: Admin - Model Pricing
+    description: LLM model pricing configuration (4 endpoints)
+  - name: Admin - System Config
+    description: System configuration management (5 endpoints)
+  - name: Admin - Credits
+    description: Admin credit operations (5 endpoints)
+  - name: Health
+    description: Health check (1 endpoint)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        isVerified:
+          type: boolean
+        aiCreditsBalance:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    UserProject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        projectName:
+          type: string
+        userIdea:
+          type: string
+        intentProcessedStatus:
+          type: string
+          enum: [NOT_INITIATED, EVALUATED, UNDER_PROCESSING, FAILED_INSUFFICIENT_CREDITS, FAILED_OTHER]
+        searchQueryProcessedStatus:
+          type: string
+          enum: [NOT_INITIATED, EVALUATED, UNDER_PROCESSING, FAILED_INSUFFICIENT_CREDITS, FAILED_OTHER]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CandidatePaper:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        paperTitle:
+          type: string
+        paperAbstract:
+          type: string
+        paperDownloadLink:
+          type: string
+          nullable: true
+        isProcessedByLlm:
+          type: boolean
+        semanticSimilarity:
+          type: number
+          nullable: true
+        c1Score:
+          type: number
+          nullable: true
+        c2Score:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    BackgroundJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+          nullable: true
+        paperId:
+          type: string
+          format: uuid
+          nullable: true
+        jobType:
+          type: string
+          enum: [PROJECT_INIT_INTENT, PROJECT_INIT_QUERY, PAPER_SCORING, SEND_EMAIL]
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED, FAILED_NO_CREDITS]
+        bullJobId:
+          type: string
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        attempts:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+paths:
+  # ==========================================================================
+  # AUTHENTICATION ENDPOINTS (10)
+  # ==========================================================================
+  
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/verify-email:
+    get:
+      tags: [Authentication]
+      summary: Verify email address
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/resend-verification:
+    post:
+      tags: [Authentication]
+      summary: Resend verification email
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/profile:
+    get:
+      tags: [Authentication]
+      summary: Get user profile
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+
+  /auth/change-password:
+    post:
+      tags: [Authentication]
+      summary: Change password
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout user
+      operationId: logoutUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # USER PROJECTS ENDPOINTS (7)
+  # ==========================================================================
+
+  /user-projects/create-project:
+    post:
+      tags: [User Projects]
+      summary: Create a new project
+      operationId: createProject
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [projectName, userIdea]
+              properties:
+                projectName:
+                  type: string
+                userIdea:
+                  type: string
+      responses:
+        '202':
+          description: Project created and processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /user-projects/my-projects:
+    get:
+      tags: [User Projects]
+      summary: Get my projects
+      operationId: getMyProjects
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      projects:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserProject'
+
+  /user-projects/user/{userId}:
+    get:
+      tags: [User Projects]
+      summary: Get projects by user ID
+      operationId: getProjectsByUserId
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /user-projects/{projectId}:
+    get:
+      tags: [User Projects]
+      summary: Get project by ID
+      operationId: getProjectById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/UserProject'
+
+    put:
+      tags: [User Projects]
+      summary: Update project
+      operationId: updateProject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectName:
+                  type: string
+                userIdea:
+                  type: string
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    delete:
+      tags: [User Projects]
+      summary: Delete project
+      operationId: deleteProject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /user-projects/{projectId}/export:
+    get:
+      tags: [User Projects]
+      summary: Export project report
+      operationId: exportProject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Excel file generated
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  # ==========================================================================
+  # CANDIDATE PAPERS ENDPOINTS (7)
+  # ==========================================================================
+
+  /user-projects/{projectId}/papers:
+    post:
+      tags: [Candidate Papers]
+      summary: Add paper to project
+      operationId: addPaper
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paperTitle, paperAbstract]
+              properties:
+                paperTitle:
+                  type: string
+                paperAbstract:
+                  type: string
+                paperDownloadLink:
+                  type: string
+      responses:
+        '202':
+          description: Paper added and scoring started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    get:
+      tags: [Candidate Papers]
+      summary: Get all papers for project
+      operationId: getProjectPapers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Papers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /user-projects/{projectId}/papers/bulk-upload:
+    post:
+      tags: [Candidate Papers]
+      summary: Bulk upload papers (CSV)
+      operationId: bulkUploadPapers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Bulk upload initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /user-projects/papers/bulk-upload-template:
+    get:
+      tags: [Candidate Papers]
+      summary: Download CSV template
+      operationId: downloadTemplate
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: CSV template file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /papers/{paperId}:
+    get:
+      tags: [Candidate Papers]
+      summary: Get single paper
+      operationId: getPaperById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paper retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CandidatePaper'
+
+    patch:
+      tags: [Candidate Papers]
+      summary: Update paper
+      operationId: updatePaper
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paperTitle:
+                  type: string
+                paperAbstract:
+                  type: string
+                paperDownloadLink:
+                  type: string
+      responses:
+        '200':
+          description: Paper updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    delete:
+      tags: [Candidate Papers]
+      summary: Delete paper
+      operationId: deletePaper
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paper deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # BACKGROUND JOBS ENDPOINTS (3)
+  # ==========================================================================
+
+  /jobs:
+    get:
+      tags: [Background Jobs]
+      summary: Get user jobs
+      operationId: getUserJobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PROCESSING, COMPLETED, FAILED, FAILED_NO_CREDITS]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Jobs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /jobs/{jobId}/resume:
+    post:
+      tags: [Background Jobs]
+      summary: Resume failed job
+      operationId: resumeJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job resumed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /jobs/resume-all:
+    post:
+      tags: [Background Jobs]
+      summary: Resume all failed jobs
+      operationId: resumeAllJobs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Jobs resumed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # LLM PIPELINE ENDPOINTS (3)
+  # ==========================================================================
+
+  /stages/intent:
+    post:
+      tags: [LLM Pipeline]
+      summary: Stage 1 - Intent decomposition
+      operationId: processIntent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [abstract]
+              properties:
+                abstract:
+                  type: string
+                projectId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Intent processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /stages/queries:
+    post:
+      tags: [LLM Pipeline]
+      summary: Stage 2 - Query generation
+      operationId: processQueries
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Queries generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /stages/score:
+    post:
+      tags: [LLM Pipeline]
+      summary: Paper scoring
+      operationId: scorePaper
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userAbstract, candidateAbstract]
+              properties:
+                userAbstract:
+                  type: string
+                candidateAbstract:
+                  type: string
+                projectId:
+                  type: string
+                paperId:
+                  type: string
+      responses:
+        '200':
+          description: Paper scored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # LLM USAGE ENDPOINTS (6)
+  # ==========================================================================
+
+  /llm-usage/my-usage:
+    get:
+      tags: [LLM Usage]
+      summary: Get my LLM usage (USD)
+      operationId: getMyUsageUSD
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Usage retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /llm-usage/project/{projectId}:
+    get:
+      tags: [LLM Usage]
+      summary: Get project LLM usage (USD)
+      operationId: getProjectUsageUSD
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project usage retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /llm-usage/admin/all-users:
+    get:
+      tags: [LLM Usage]
+      summary: Get all users billing (Admin)
+      operationId: getAllUsersBilling
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All users billing retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /llm-usage/my-usage-credits:
+    get:
+      tags: [LLM Usage]
+      summary: Get my LLM usage (Credits)
+      operationId: getMyUsageCredits
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Usage in credits retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /llm-usage/project-credits/{projectId}:
+    get:
+      tags: [LLM Usage]
+      summary: Get project LLM usage (Credits)
+      operationId: getProjectUsageCredits
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project usage in credits retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /llm-usage/wallet-transaction-history:
+    get:
+      tags: [LLM Usage]
+      summary: Wallet transaction history
+      operationId: getWalletHistory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Transaction history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # CREDITS ENDPOINTS (1)
+  # ==========================================================================
+
+  /credits/my-balance:
+    get:
+      tags: [Credits]
+      summary: Get my credits balance
+      operationId: getMyBalance
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # ADMIN - MODEL PRICING ENDPOINTS (4)
+  # ==========================================================================
+
+  /admin/model-pricing:
+    post:
+      tags: [Admin - Model Pricing]
+      summary: Create model pricing
+      operationId: createModelPricing
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelName:
+                  type: string
+                inputPriceUsd:
+                  type: number
+                outputPriceUsd:
+                  type: number
+      responses:
+        '201':
+          description: Model pricing created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    get:
+      tags: [Admin - Model Pricing]
+      summary: List model pricing
+      operationId: listModelPricing
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Model pricing list retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/model-pricing/{id}:
+    patch:
+      tags: [Admin - Model Pricing]
+      summary: Update model pricing
+      operationId: updateModelPricing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Model pricing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+    delete:
+      tags: [Admin - Model Pricing]
+      summary: Delete model pricing
+      operationId: deleteModelPricing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Model pricing deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # ADMIN - SYSTEM CONFIG ENDPOINTS (5)
+  # ==========================================================================
+
+  /admin/system-config:
+    get:
+      tags: [Admin - System Config]
+      summary: Get system configuration
+      operationId: getSystemConfig
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System config retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/system-config/credits-multiplier:
+    post:
+      tags: [Admin - System Config]
+      summary: Update AI Credits multiplier
+      operationId: updateCreditsMultiplier
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                multiplier:
+                  type: number
+      responses:
+        '200':
+          description: Multiplier updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/system-config/credits-multiplier/history:
+    get:
+      tags: [Admin - System Config]
+      summary: Get multiplier history
+      operationId: getMultiplierHistory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Multiplier history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/system-config/default-credits:
+    post:
+      tags: [Admin - System Config]
+      summary: Update default credits
+      operationId: updateDefaultCredits
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                defaultCredits:
+                  type: number
+      responses:
+        '200':
+          description: Default credits updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/system-config/default-credits/history:
+    get:
+      tags: [Admin - System Config]
+      summary: Get default credits history
+      operationId: getDefaultCreditsHistory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Default credits history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # ADMIN - CREDITS ENDPOINTS (5)
+  # ==========================================================================
+
+  /admin/credits/recharge:
+    post:
+      tags: [Admin - Credits]
+      summary: Recharge user credits
+      operationId: rechargeCredits
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, amount]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Credits recharged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/credits/deduct:
+    post:
+      tags: [Admin - Credits]
+      summary: Deduct user credits
+      operationId: deductCredits
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, amount]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Credits deducted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/credits/user/{userId}:
+    get:
+      tags: [Admin - Credits]
+      summary: Get user credits balance
+      operationId: getUserCreditsBalance
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User balance retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/credits/user/{userId}/wallet-transaction-history:
+    get:
+      tags: [Admin - Credits]
+      summary: User wallet transaction history
+      operationId: getUserWalletHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User wallet history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/credits/wallet-transaction-history:
+    get:
+      tags: [Admin - Credits]
+      summary: Global wallet transaction history
+      operationId: getGlobalWalletHistory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Global wallet history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # HEALTH CHECK ENDPOINT (1)
+  # ==========================================================================
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number

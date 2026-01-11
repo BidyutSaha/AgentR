@@ -23,3 +23,17 @@ It will re-check your credits (which will now pass).
 It will proceed to execute the LLM Stage 1 (Intent) and Stage 2 (Queries).
 This ensures that failed jobs due to payment issues are recoverable without data loss.
 
+
+
+
+
+
+left,
+digarams  - only erd is done
+
+left, 
+docs - 
+architecture, workflow, trobuleshooting, testiing, deployments handover 
+
+screpts-
+all

@@ -1,0 +1,1416 @@
+{
+    "info": {
+        "name": "Literature Review System API - Complete",
+        "description": "Complete API collection with all 52 endpoints for the AI-Powered Literature Review System.\n\n**Features:**\n- User authentication (10 endpoints)\n- Research project management (7 endpoints)\n- Paper analysis with LLM (7 endpoints)\n- Background jobs (3 endpoints)\n- LLM Pipeline (3 endpoints)\n- LLM Usage tracking (6 endpoints)\n- Credits management (1 endpoint)\n- Admin - Model Pricing (4 endpoints)\n- Admin - System Config (5 endpoints)\n- Admin - Credits (5 endpoints)\n- Health check (1 endpoint)\n\n**Base URL:** {{baseUrl}}/v1\n**Total Endpoints:** 52",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "literature-review-api-complete"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{accessToken}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('userId', response.data.user.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('accessToken', response.data.tokens.accessToken);",
+                                    "    pm.environment.set('refreshToken', response.data.tokens.refreshToken);",
+                                    "    pm.environment.set('userId', response.data.user.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Email",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/verify-email?token={{verificationToken}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "verify-email"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token",
+                                    "value": "{{verificationToken}}"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Resend Verification",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/resend-verification",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "resend-verification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/forgot-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "forgot-password"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/reset-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "reset-password"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('accessToken', response.data.tokens.accessToken);",
+                                    "    pm.environment.set('refreshToken', response.data.tokens.refreshToken);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/refresh",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "refresh"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "profile"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/change-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "change-password"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/auth/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "User Projects",
+            "item": [
+                {
+                    "name": "Create Project",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 202) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('projectId', response.data.project.id);",
+                                    "    pm.environment.set('jobId', response.data.jobId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"projectName\": \"AI-Powered Literature Review\",\n  \"userIdea\": \"This research explores the use of large language models for automated literature review and research gap discovery in academic research.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/create-project",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "create-project"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Projects",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/my-projects",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "my-projects"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Projects by User ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/user/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "user",
+                                "{{userId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Project by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Project",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"projectName\": \"Updated Project Name\",\n  \"userIdea\": \"Updated research idea...\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Project",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Export Project Report",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}/export",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}",
+                                "export"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Candidate Papers",
+            "item": [
+                {
+                    "name": "Add Paper to Project",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 202) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('paperId', response.data.paper.id);",
+                                    "    pm.environment.set('scoringJobId', response.data.jobId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"paperTitle\": \"Deep Learning for Natural Language Processing\",\n  \"paperAbstract\": \"This paper presents a comprehensive survey of deep learning techniques applied to natural language processing tasks...\",\n  \"paperDownloadLink\": \"https://arxiv.org/pdf/example.pdf\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}/papers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}",
+                                "papers"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Project Papers",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}/papers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}",
+                                "papers"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Bulk Upload Papers (CSV)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/{{projectId}}/papers/bulk-upload",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "{{projectId}}",
+                                "papers",
+                                "bulk-upload"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Download CSV Template",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/user-projects/papers/bulk-upload-template",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "user-projects",
+                                "papers",
+                                "bulk-upload-template"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Paper by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/papers/{{paperId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "papers",
+                                "{{paperId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Paper",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"paperTitle\": \"Updated Paper Title\",\n  \"paperAbstract\": \"Updated abstract...\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/papers/{{paperId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "papers",
+                                "{{paperId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Paper",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/papers/{{paperId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "papers",
+                                "{{paperId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Background Jobs",
+            "item": [
+                {
+                    "name": "Get User Jobs",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/jobs?status=FAILED&limit=50&offset=0",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "jobs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "FAILED"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "50"
+                                },
+                                {
+                                    "key": "offset",
+                                    "value": "0"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Resume Failed Job",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/jobs/{{jobId}}/resume",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "jobs",
+                                "{{jobId}}",
+                                "resume"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Resume All Failed Jobs",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/jobs/resume-all",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "jobs",
+                                "resume-all"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "LLM Pipeline",
+            "item": [
+                {
+                    "name": "Stage 1 - Intent Decomposition",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"abstract\": \"This research explores the use of large language models for automated literature review and research gap discovery in academic research.\",\n  \"projectId\": \"{{projectId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/stages/intent",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "stages",
+                                "intent"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Stage 2 - Query Generation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"abstract\": \"This research explores...\",\n  \"problem\": \"Automated literature review\",\n  \"methodologies\": [\"LLM\", \"NLP\"],\n  \"applicationDomains\": [\"Academic Research\"],\n  \"constraints\": [\"Accuracy\"],\n  \"contributionTypes\": [\"Tool\"],\n  \"keywords_seed\": [\"LLM\", \"literature review\"],\n  \"projectId\": \"{{projectId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/stages/queries",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "stages",
+                                "queries"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Paper Scoring",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userAbstract\": \"This research explores...\",\n  \"candidateAbstract\": \"This paper presents...\",\n  \"projectId\": \"{{projectId}}\",\n  \"paperId\": \"{{paperId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/stages/score",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "stages",
+                                "score"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "LLM Usage Tracking",
+            "item": [
+                {
+                    "name": "Get My LLM Usage (USD)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/my-usage",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "my-usage"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Project LLM Usage (USD)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/project/{{projectId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "project",
+                                "{{projectId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Users Billing (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/admin/all-users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "admin",
+                                "all-users"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My LLM Usage (Credits)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/my-usage-credits",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "my-usage-credits"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Project LLM Usage (Credits)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/project-credits/{{projectId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "project-credits",
+                                "{{projectId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Wallet Transaction History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/llm-usage/wallet-transaction-history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "llm-usage",
+                                "wallet-transaction-history"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Credits",
+            "item": [
+                {
+                    "name": "Get My Credits Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/credits/my-balance",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "credits",
+                                "my-balance"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin - Model Pricing",
+            "item": [
+                {
+                    "name": "Create Model Pricing",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"modelName\": \"gpt-4o\",\n  \"inputPriceUsd\": 0.0025,\n  \"outputPriceUsd\": 0.01\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/model-pricing",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "model-pricing"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Model Pricing",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/model-pricing",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "model-pricing"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Model Pricing",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"inputPriceUsd\": 0.003,\n  \"outputPriceUsd\": 0.012\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/model-pricing/{{pricingId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "model-pricing",
+                                "{{pricingId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Model Pricing",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/model-pricing/{{pricingId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "model-pricing",
+                                "{{pricingId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin - System Config",
+            "item": [
+                {
+                    "name": "Get System Configuration",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/system-config",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "system-config"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Credits Multiplier",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"multiplier\": 1000\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/system-config/credits-multiplier",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "system-config",
+                                "credits-multiplier"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Multiplier History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/system-config/credits-multiplier/history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "system-config",
+                                "credits-multiplier",
+                                "history"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Default Credits",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"defaultCredits\": 100\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/system-config/default-credits",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "system-config",
+                                "default-credits"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Default Credits History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/system-config/default-credits/history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "system-config",
+                                "default-credits",
+                                "history"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin - Credits Management",
+            "item": [
+                {
+                    "name": "Recharge User Credits",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 500\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/credits/recharge",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "credits",
+                                "recharge"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Deduct User Credits",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 50\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/credits/deduct",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "credits",
+                                "deduct"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Credits Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/credits/user/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "credits",
+                                "user",
+                                "{{userId}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Wallet Transaction History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/credits/user/{{userId}}/wallet-transaction-history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "credits",
+                                "user",
+                                "{{userId}}",
+                                "wallet-transaction-history"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Global Wallet Transaction History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/admin/credits/wallet-transaction-history",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "admin",
+                                "credits",
+                                "wallet-transaction-history"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Health Check",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/v1/health",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "health"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5000",
+            "type": "string"
+        }
+    ]
+}

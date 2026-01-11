@@ -13,38 +13,57 @@ Complete database schema documentation for the Literature Review System.
 1. [Overview](#overview)
 2. [ER Diagram](#er-diagram)
 3. [Tables](#tables)
-   - [users](#table-users)
-   - [email_verification_tokens](#table-email_verification_tokens)
-   - [password_reset_tokens](#table-password_reset_tokens)
-   - [refresh_tokens](#table-refresh_tokens)
-   - [user_projects](#table-user_projects)
-   - [candidate_papers](#table-candidate_papers)
-   - [background_jobs](#table-background_jobs)
-   - [llm_usage_logs](#table-llm_usage_logs)
-4. [Indexes](#indexes)
-5. [Migrations](#migrations)
-6. [Backup & Recovery](#backup--recovery)
+   - **Authentication Tables**
+     - [users](#table-users)
+     - [email_verification_tokens](#table-email_verification_tokens)
+     - [password_reset_tokens](#table-password_reset_tokens)
+     - [refresh_tokens](#table-refresh_tokens)
+   - **Core Data Tables**
+     - [user_projects](#table-user_projects)
+     - [candidate_papers](#table-candidate_papers)
+   - **Background Processing**
+     - [background_jobs](#table-background_jobs)
+   - **LLM Tracking**
+     - [llm_model_pricing](#table-llm_model_pricing)
+     - [llm_usage_logs](#table-llm_usage_logs)
+   - **AI Credits System**
+     - [credits_multiplier_history](#table-credits_multiplier_history)
+     - [default_credits_history](#table-default_credits_history)
+     - [user_credits_transactions](#table-user_credits_transactions)
+4. [Enums](#enums)
+5. [Indexes](#indexes)
+6. [Migrations](#migrations)
+7. [Backup & Recovery](#backup--recovery)
 
 ---
 
 ## Overview
 
-The database consists of **7 tables** organized into three main groups:
+The database consists of **12 tables** organized into five main groups:
 
-### Authentication Tables
-- `users` - Core user accounts
+### Authentication Tables (4)
+- `users` - Core user accounts with AI credits balance
 - `email_verification_tokens` - Email verification workflow
 - `password_reset_tokens` - Password reset workflow
 - `refresh_tokens` - JWT refresh token management
 
-### Application Tables
+### Core Data Tables (2)
 - `user_projects` - User research projects
 - `candidate_papers` - Candidate papers for analysis
 
-### LLM Tracking Tables
+### Background Processing (1)
+- `background_jobs` - Asynchronous job tracking (BullMQ integration)
+
+### LLM Tracking Tables (2)
+- `llm_model_pricing` - LLM model pricing configuration (USD per million tokens)
 - `llm_usage_logs` - LLM API usage tracking for billing
 
-**Total Relationships**: 8 foreign keys (all with CASCADE or SET NULL delete)
+### AI Credits System (3)
+- `credits_multiplier_history` - USD to AI Credits conversion rate history
+- `default_credits_history` - Default signup credits configuration history
+- `user_credits_transactions` - Complete audit log of all credit balance changes
+
+**Total Relationships**: 11 foreign keys (all with CASCADE or SET NULL delete)
 
 ---
 
@@ -82,6 +101,7 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 | last_name | VARCHAR(100) | NULL | User's last name |
 | is_verified | BOOLEAN | NOT NULL, DEFAULT false | Email verification status |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | Account active status |
+| ai_credits_balance | FLOAT | NOT NULL, DEFAULT 0.0 | Current AI Credits balance |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Account creation timestamp |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update timestamp |
 | last_login | TIMESTAMP | NULL | Last successful login timestamp |
@@ -288,6 +308,7 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 | semantic_similarity | DECIMAL(5,4) | NULL | Similarity score (0.0000-1.0000) |
 | similarity_model_name | VARCHAR(100) | NULL | Model used for similarity calculation |
 | problem_overlap | VARCHAR(20) | NULL | Problem overlap level (high/medium/low) |
+| method_overlap | VARCHAR(20) | NULL | Method overlap level (high/medium/low) |
 | domain_overlap | VARCHAR(20) | NULL | Domain overlap level (high/medium/low) |
 | constraint_overlap | VARCHAR(20) | NULL | Constraint overlap level (high/medium/low) |
 | c1_score | DECIMAL(5,2) | NULL | C1 (competitor) score (0-100) |
@@ -298,8 +319,11 @@ The ER diagram shows all tables, relationships, primary keys, foreign keys, and 
 | c2_justification | TEXT | NULL | Justification for C2 score |
 | c2_contribution_type | TEXT | NULL | Type of contribution this paper makes |
 | c2_relevance_areas | TEXT | NULL | Areas where this paper is relevant |
+| c2_strengths | TEXT | NULL | Strengths as supporting work |
+| c2_weaknesses | TEXT | NULL | Weaknesses as supporting work |
 | research_gaps | TEXT | NULL | Research gaps identified in the paper |
 | user_novelty | TEXT | NULL | What makes user's work novel vs this paper |
+| candidate_advantage | TEXT | NULL | What advantages the candidate paper has |
 | model_used | VARCHAR(100) | NULL | LLM model used for analysis |
 | input_tokens_used | INTEGER | NULL | Number of input tokens consumed |
 | output_tokens_used | INTEGER | NULL | Number of output tokens generated |
@@ -640,31 +664,268 @@ VACUUM ANALYZE user_projects;
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Job creation time |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last status update |
 
-### Indexes
-
 - `idx_background_jobs__status_job_type` — Fast filtering by type and status
 - `idx_background_jobs__user_id` — Fast lookup for user dashboard
 - `idx_background_jobs__project_id` — Lookup all jobs for a project
 - `idx_background_jobs__user_id_status` — Filter user jobs by status
 
-### Enums: JobType
+### Business Rules
+
+- Jobs are created in `PENDING` status
+- Worker updates status to `PROCESSING` when starting
+- Status changes to `COMPLETED` on success or `FAILED`/`FAILED_NO_CREDITS` on failure
+- `attempts` counter increments on each retry
+- See [Enums](#enums) section for JobType and JobStatus values
+
+---
+
+## Table: llm_model_pricing
+
+**Description**: Stores pricing information for LLM models (USD per million tokens). Supports multiple providers, pricing tiers, and historical pricing tracking.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique pricing record identifier |
+| model_name | VARCHAR(255) | NOT NULL | Model name (e.g., 'gpt-4o', 'gpt-4o-mini') |
+| provider | VARCHAR(100) | NOT NULL, DEFAULT 'openai' | Provider name ('openai', 'anthropic', etc.) |
+| pricing_tier | VARCHAR(50) | NOT NULL, DEFAULT 'standard' | Pricing tier ('batch', 'flex', 'standard', 'priority') |
+| input_usd_price_per_million_tokens | FLOAT | NOT NULL | Input token price in USD per 1M tokens |
+| output_usd_price_per_million_tokens | FLOAT | NOT NULL | Output token price in USD per 1M tokens |
+| cached_input_usd_price_per_million_tokens | FLOAT | NULL | Cached input price (for prompt caching support) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | Whether this pricing is currently active |
+| is_latest | BOOLEAN | NOT NULL, DEFAULT true | Whether this is the latest pricing for this model |
+| description | TEXT | NULL | Optional description (e.g., "GPT-4 Turbo with vision") |
+| notes | TEXT | NULL | Admin notes about pricing changes |
+| effective_from | TIMESTAMP | NOT NULL, DEFAULT NOW() | When this pricing becomes effective |
+| effective_to | TIMESTAMP | NULL | When this pricing expires (null = current) |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update timestamp |
+
+### Indexes
+
+- `idx_llm_model_pricing__unique` — Unique constraint on (model_name, provider, pricing_tier, effective_from)
+- `idx_llm_model_pricing__lookup` — Fast lookup (model_name, provider, pricing_tier, is_latest)
+- `idx_llm_model_pricing__active_latest` — Query active and latest prices (is_active, is_latest)
+- `idx_llm_model_pricing__effective_from` — Time-based queries
+
+### Business Rules
+
+- Only one pricing record per (model, provider, tier) can have `is_latest = true`
+- `effective_to` is NULL for current pricing
+- Historical pricing is preserved for audit purposes
+- Cost calculations use the latest active pricing
+
+---
+
+## Table: credits_multiplier_history
+
+**Description**: Tracks the USD to AI Credits conversion rate over time. Uses Type 2 Slowly Changing Dimension (SCD) pattern for historical tracking.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique history record identifier |
+| usd_to_credits_multiplier | FLOAT | NOT NULL | Conversion rate (1 USD = X Credits) |
+| description | TEXT | NULL | Description of this rate |
+| updated_by | VARCHAR(255) | NULL | Admin user ID who set this rate |
+| effective_from | TIMESTAMP | NOT NULL, DEFAULT NOW() | When this rate becomes active |
+| effective_to | TIMESTAMP | NULL | When this rate expires (null = current) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | Is this the current active rate? |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation timestamp |
+
+### Indexes
+
+- `idx_credits_multiplier__active_from` — Fast lookup of current rate (is_active, effective_from)
+
+### Business Rules
+
+- Only one record can have `is_active = true` at a time
+- When a new rate is set, the previous rate's `effective_to` is set and `is_active` becomes false
+- Complete audit trail of all rate changes
+- Default multiplier: 1000 (1 USD = 1000 Credits)
+
+### Example
+
+```sql
+-- Current rate
+SELECT usd_to_credits_multiplier 
+FROM credits_multiplier_history 
+WHERE is_active = true;
+
+-- Rate history
+SELECT 
+  usd_to_credits_multiplier,
+  effective_from,
+  effective_to,
+  updated_by
+FROM credits_multiplier_history
+ORDER BY effective_from DESC;
+```
+
+---
+
+## Table: default_credits_history
+
+**Description**: Tracks the default AI Credits given to new users on signup. Uses Type 2 SCD pattern for historical tracking.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique history record identifier |
+| default_credits | FLOAT | NOT NULL | Credits given on signup |
+| description | TEXT | NULL | Description of this credit amount |
+| updated_by | VARCHAR(255) | NULL | Admin user ID who set this amount |
+| effective_from | TIMESTAMP | NOT NULL, DEFAULT NOW() | When this amount becomes active |
+| effective_to | TIMESTAMP | NULL | When this amount expires (null = current) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | Is this the current active amount? |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Record creation timestamp |
+
+### Indexes
+
+- `idx_default_credits__active_from` — Fast lookup of current amount (is_active, effective_from)
+
+### Business Rules
+
+- Only one record can have `is_active = true` at a time
+- When a new amount is set, the previous amount's `effective_to` is set and `is_active` becomes false
+- Complete audit trail of all default credit changes
+- Default amount: 100 credits
+
+### Example
+
+```sql
+-- Current default credits
+SELECT default_credits 
+FROM default_credits_history 
+WHERE is_active = true;
+
+-- History of changes
+SELECT 
+  default_credits,
+  effective_from,
+  effective_to,
+  updated_by
+FROM default_credits_history
+ORDER BY effective_from DESC;
+```
+
+---
+
+## Table: user_credits_transactions
+
+**Description**: Complete audit log of all AI Credits balance changes. Every credit addition or deduction is recorded here for full traceability.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique transaction identifier |
+| user_id | UUID | NOT NULL, FK → users(id) | User whose balance changed |
+| admin_id | VARCHAR(255) | NULL | Admin who performed action (null for system actions) |
+| transaction_type | VARCHAR(50) | NOT NULL | Type of transaction (see below) |
+| amount | FLOAT | NOT NULL | Amount changed (positive for additions, negative for deductions) |
+| balance_before | FLOAT | NOT NULL | User's balance before transaction |
+| balance_after | FLOAT | NOT NULL | User's balance after transaction |
+| reason | TEXT | NULL | Reason for this transaction |
+| description | TEXT | NULL | Additional notes |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Transaction timestamp |
+
+### Indexes
+
+- `idx_user_credits_transactions__user_created` — User transaction history (user_id, created_at)
+- `idx_user_credits_transactions__admin_id` — Admin audit trail
+- `idx_user_credits_transactions__transaction_type` — Filter by transaction type
+
+### Constraints
+
+- `fk_user_credits_transactions__user_id` — Foreign key to users table (CASCADE delete)
+
+### Transaction Types
+
+| Type | Description | Amount |
+|------|-------------|--------|
+| `SIGNUP_DEFAULT` | Credits given on user registration | Positive |
+| `ADMIN_RECHARGE` | Admin manually added credits | Positive |
+| `ADMIN_DEDUCT` | Admin manually removed credits | Negative |
+| `ADMIN_ADJUSTMENT` | Admin balance correction | Positive or Negative |
+
+### Business Rules
+
+- Every balance change MUST create a transaction record
+- `balance_after` must equal `balance_before + amount`
+- Immutable records (no updates or deletes)
+- Complete audit trail for compliance
+
+### Example
+
+```sql
+-- User's transaction history
+SELECT 
+  transaction_type,
+  amount,
+  balance_before,
+  balance_after,
+  reason,
+  created_at
+FROM user_credits_transactions
+WHERE user_id = 'user_123'
+ORDER BY created_at DESC;
+
+-- Admin actions audit
+SELECT 
+  u.email,
+  uct.transaction_type,
+  uct.amount,
+  uct.reason,
+  uct.created_at
+FROM user_credits_transactions uct
+JOIN users u ON uct.user_id = u.id
+WHERE uct.admin_id IS NOT NULL
+ORDER BY uct.created_at DESC;
+```
+
+---
+
+## Enums
+
+### Enum: ProcessingStatus
+
+Used in `user_projects` table for tracking stage processing status.
+
+| Value | Database Value | Description |
+|-------|----------------|-------------|
+| `NOT_INITIATED` | `not_initiated` | Processing has not started |
+| `EVALUATED` | `evaluated` | Processing completed successfully |
+| `UNDER_PROCESSING` | `under_processing` | Currently being processed |
+| `FAILED_INSUFFICIENT_CREDITS` | `failed_non_credit_left` | Failed due to insufficient AI credits |
+| `FAILED_OTHER` | `failed_other_reason` | Failed due to other errors |
+
+### Enum: JobType
+
+Used in `background_jobs` table.
 
 | Value | Description |
 |-------|-------------|
 | `PROJECT_INIT_INTENT` | Stage 1 intent decomposition |
 | `PROJECT_INIT_QUERY` | Stage 2 query generation |
-| `PAPER_SCORING` | Full paper scoring pipeline (Stage 5+6+7) |
+| `PAPER_SCORING` | Full paper scoring pipeline |
 | `SEND_EMAIL` | Asynchronous email dispatch |
 
-### Enums: JobStatus
+### Enum: JobStatus
+
+Used in `background_jobs` table.
 
 | Value | Description |
 |-------|-------------|
-| `PENDING` | Job created in DB, waiting to be picked up by Worker (or queued during Redis outage) |
-| `PROCESSING` | Worker has started processing the job |
+| `PENDING` | Job created, waiting for worker |
+| `PROCESSING` | Worker is processing the job |
 | `COMPLETED` | Job finished successfully |
-| `FAILED` | Job failed due to system error (e.g. Redis down), timeout, or crash |
-| `FAILED_NO_CREDITS` | Job stopped because user lacks required AI credits |
+| `FAILED` | Job failed due to system error |
+| `FAILED_NO_CREDITS` | Job stopped due to insufficient credits |
 
 ---
 
