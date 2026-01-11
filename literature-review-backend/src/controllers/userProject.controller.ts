@@ -21,6 +21,17 @@ import logger from '../config/logger';
 import { projectQueue, JOB_NAMES } from '../queues'; // Add imports
 import prisma from '../config/database'; // Add prisma import
 
+// Helper for queue timeouts
+const CONNECTION_TIMEOUT = 5000; // 5 seconds
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = CONNECTION_TIMEOUT): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('Queue operation timed out - Redis might be down')), timeoutMs)
+        )
+    ]);
+};
+
 /**
  * Create a new project
  * POST /v1/projects
@@ -54,15 +65,27 @@ export async function createProject(req: Request, res: Response): Promise<void> 
             }
         });
 
-        // Dispatch Async Job to Queue
-        await projectQueue.add(JOB_NAMES.PROJECT_INIT_INTENT, {
-            backgroundJobId: backgroundJob.id,
-            projectId: project.id,
-            userId: req.userId,
-            stageData: {
-                abstract: data.userIdea
-            }
-        });
+        // Dispatch Async Job to Queue with Timeout
+        try {
+            await withTimeout(projectQueue.add(JOB_NAMES.PROJECT_INIT_INTENT, {
+                backgroundJobId: backgroundJob.id,
+                projectId: project.id,
+                userId: req.userId,
+                stageData: {
+                    abstract: data.userIdea
+                }
+            }));
+        } catch (queueError: any) {
+            logger.error('Failed to add job to queue:', queueError);
+            await prisma.backgroundJob.update({
+                where: { id: backgroundJob.id },
+                data: {
+                    status: 'FAILED',
+                    failureReason: `Queue dispatch failed: ${queueError.message}`
+                }
+            });
+            // Continue execution to return success response - job can be resumed later
+        }
 
         // Return 202 Accepted (Non-blocking)
         res.status(202).json({

@@ -40,45 +40,48 @@ Complete API reference for the Literature Review System.
 21. [DELETE /v1/papers/:paperId](#delete-v1paperspaperid) - Delete paper
 
 ### Background Jobs (Protected)
+22. [GET /v1/jobs](#get-v1jobs) - Get user jobs
 23. [POST /v1/jobs/:jobId/resume](#post-v1jobsjobidresume) - Resume failed job
+24. [POST /v1/jobs/resume-all](#post-v1jobsresume-all) - Resume all failed jobs
 
 ### LLM Pipeline (Protected)
-24. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
-25. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
-26. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
+25. [POST /v1/stages/intent](#post-v1stagesintent) - Stage 1: Intent decomposition
+26. [POST /v1/stages/queries](#post-v1stagesqueries) - Stage 2: Query generation
+27. [POST /v1/stages/score](#post-v1stagesscore) - Paper scoring
 
 ### LLM Usage Tracking - USD (Protected)
-27. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
-28. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
-29. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
+28. [GET /v1/llm-usage/my-usage](#get-v1llm-usagemy-usage) - Get my LLM usage (USD)
+29. [GET /v1/llm-usage/project/:projectId](#get-v1llm-usageprojectprojectid) - Get project LLM usage (USD)
+30. [GET /v1/llm-usage/admin/all-users](#get-v1llm-usageadminall-users) - Get all users billing (USD, admin)
 
 ### LLM Usage Tracking - AI Credits (Protected)
-30. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
-31. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
-32. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
-33. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
+31. [GET /v1/llm-usage/my-usage-credits](#get-v1llm-usagemy-usage-credits) - Get my LLM usage (Credits)
+32. [GET /v1/llm-usage/project-credits/:projectId](#get-v1llm-usageproject-creditsprojectid) - Get project LLM usage (Credits)
+33. [GET /v1/llm-usage/wallet-transaction-history](#get-v1llm-usagewallet-transaction-history) - Wallet transaction history
+34. [GET /v1/credits/my-balance](#get-v1creditsmy-balance) - Get my credits balance
 
 ### Model Pricing Management (Admin Only)
-34. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
-35. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
-36. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
-37. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
+35. [POST /v1/admin/model-pricing](#post-v1adminmodel-pricing) - Create model pricing
+36. [GET /v1/admin/model-pricing](#get-v1adminmodel-pricing) - List model pricing
+37. [PATCH /v1/admin/model-pricing/:id](#patch-v1adminmodel-pricingid) - Update model pricing
+38. [DELETE /v1/admin/model-pricing/:id](#delete-v1adminmodel-pricingid) - Delete model pricing
 
 ### Health Check (Public)
-38. [GET /v1/health](#get-v1health) - Health check
+39. [GET /v1/health](#get-v1health) - Health check
 
 ### System Configuration (Admin Only)
-39. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
-40. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
-41. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
-42. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
-43. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
+40. [GET /v1/admin/system-config](#get-v1adminsystem-config) - Get system configuration
+41. [POST /v1/admin/system-config/credits-multiplier](#post-v1adminsystem-configcredits-multiplier) - Update AI Credits multiplier
+42. [GET /v1/admin/system-config/credits-multiplier/history](#get-v1adminsystem-configcredits-multiplierhistory) - Get multiplier history
+43. [POST /v1/admin/system-config/default-credits](#post-v1adminsystem-configdefault-credits) - Update default credits
+44. [GET /v1/admin/system-config/default-credits/history](#get-v1adminsystem-configdefault-creditshistory) - Get default credits history
 
 ### Credits Management (Admin Only)
-44. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
-45. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
-46. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
-47. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
+45. [POST /v1/admin/credits/recharge](#post-v1admincreditsrecharge) - Recharge user credits
+46. [POST /v1/admin/credits/deduct](#post-v1admincreditsdeduct) - Deduct user credits
+47. [GET /v1/admin/credits/user/:userId](#get-v1admincreditsuseruserid) - Get user credits balance
+48. [GET /v1/admin/credits/user/:userId/wallet-transaction-history](#get-v1admincreditsuseruseridwallet-transaction-history) - Wallet transaction history
+49. [GET /v1/admin/credits/wallet-transaction-history](#get-v1admincreditswallet-transaction-history) - Global wallet transaction history
 
 
 ---
@@ -2178,7 +2181,76 @@ Content-Type: application/json
 
 ---
 
-## POST /v1/jobs/:jobId/resume
+## Background Jobs Endpoints
+
+### GET /v1/jobs
+
+**Description**: Get background jobs for the authenticated user, with optional filtering.
+
+**Authentication**: Required  
+**Roles**: User
+
+---
+
+### Input Structure
+
+**Query Parameters**:
+- `status` (string, optional) — Comma-separated list of statuses (e.g., `PENDING,FAILED`)
+- `limit` (number, optional) — Number of records to return (default: 20)
+- `offset` (number, optional) — Pagination offset (default: 0)
+
+---
+
+### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    jobs: Array<{
+      id: string;
+      userId: string;
+      projectId: string | null;
+      paperId: string | null;
+      jobType: string;
+      status: string;
+      bullJobId: string | null;
+      failureReason: string | null;
+      attempts: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
+}
+```
+
+---
+
+### Sample Request
+
+```bash
+GET /v1/jobs?status=PENDING,FAILED&limit=10
+Authorization: Bearer <token>
+```
+
+---
+
+### Business Logic Notes
+
+- Filters by `userId` (authenticated user) automatically.
+- `failureReason` provides details if the job failed.
+- Returns jobs ordered by `createdAt` descending (newest first).
+
+---
+
+### POST /v1/jobs/:jobId/resume
 
 **Description**: Resume a failed background job (e.g., after credit recharge).
 
@@ -2218,9 +2290,65 @@ Authorization: Bearer <token>
 ### Business Logic Notes
 
 - **Validation**: Checks if job exists and belongs to user.
+- **Orphan Check**: Verifies that the parent project (if applicable) still exists. Returns 404 if project was deleted.
+- **Credit Check**: Verifies user has positive AI Credit balance. Returns 402 if insufficient.
 - **Fail Check**: Only jobs with status `FAILED` or `FAILED_NO_CREDITS` can be resumed.
-- **Queue Logic**: Re-adds the job to the appropriate BullMQ queue (project or paper).
+- **Queue Logic**: Re-adds the job to the appropriate BullMQ queue.
+- **Resilience / Recovery**: 
+  - If the original job data expired from Redis (or Redis was down), the system **reconstructs** the payload using database records (`projectId`, `paperId`).
+  - This ensures jobs are never lost even if the queue is flushed.
 - **Status Update**: Updates DB status to `PENDING`.
+
+---
+
+### POST /v1/jobs/resume-all
+
+**Description**: Resume ALL failed background jobs for the authenticated user (Batch Operation).
+
+**Authentication**: Required  
+**Roles**: User
+
+---
+
+### Input Structure
+
+**Request Body**: None
+
+---
+
+### Output Structure
+
+**Success Response** (200 OK):
+```typescript
+{
+  success: true;
+  data: {
+    message: string;      // "Successfully resumed X jobs"
+    count: number;        // Number of jobs resumed
+    totalFailedFound: number;
+  };
+}
+```
+
+---
+
+### Sample Request
+
+```bash
+POST /v1/jobs/resume-all
+Authorization: Bearer <token>
+```
+
+### Business Logic Notes
+
+- **Batch Resume**: Finds all jobs for the user with status `FAILED` or `FAILED_NO_CREDITS`.
+- **Pre-Validation**: Checks user global credit balance once before processing.
+- **Iteration**: Iterates through each job and applies Orphan Check and Resilience logic.
+- **Orphan Handling**: If a job's project has been deleted:
+  - The job CANNOT be resumed.
+  - The job status is updated to `FAILED` with reason "Project deleted (Orphaned)".
+  - These jobs are skipped in the success count.
+- **Error Handling**: Partial failures are logged, but the overall request returns success with the count of successfully resumed jobs.
 
 ---
 
@@ -2228,9 +2356,9 @@ Authorization: Bearer <token>
 
 ---
 
-### POST /v1/stages/intent
+### 26. POST /v1/stages/queries
 
-**Description**: Stage 1 - Decompose a research topic abstract into its core components.
+**Description**: Stage 2 - Generate optimized search queries based on Stage 1 analysis.
 
 **Authentication**: Required (JWT)
 **Roles**: Authenticated User
@@ -2340,7 +2468,7 @@ Content-Type: application/json
 
 ---
 
-### POST /v1/stages/score
+### 27. POST /v1/stages/score
 
 **Description**: Perform comprehensive scoring of a candidate paper against the user's research (Stage 5+6+7 merged).
 
@@ -2558,7 +2686,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## LLM Pipeline Endpoints
 
-### POST /v1/stages/intent
+### 25. POST /v1/stages/intent
 
 **Description**: Stage 1 - Decompose research abstract into structured intent components.
 
@@ -2671,7 +2799,7 @@ These diagrams show:
 
 ## LLM Usage Tracking Endpoints
 
-### GET /v1/llm-usage/my-usage
+### 28. GET /v1/llm-usage/my-usage
 
 **Description**: Get current user's LLM usage statistics and costs **in USD** for billing purposes.
 
@@ -2784,7 +2912,7 @@ Authorization: Bearer <token>
 
 ---
 
-### GET /v1/llm-usage/project/:projectId
+### 29. GET /v1/llm-usage/project/:projectId
 
 **Description**: Get LLM usage statistics for a specific project **in USD**.
 
@@ -2880,7 +3008,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/llm-usage/admin/all-users
+### 30. GET /v1/llm-usage/admin/all-users
 
 **Description**: Get billing summary for all users **in USD** (admin only).
 
@@ -3003,7 +3131,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## LLM Usage Tracking - AI Credits (Protected)
 
-### GET /v1/llm-usage/my-usage-credits
+### 31. GET /v1/llm-usage/my-usage-credits
 
 **Description**: Get current user's LLM usage statistics and costs **in AI Credits**.
 
@@ -3037,7 +3165,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/llm-usage/project-credits/:projectId
+### 32. GET /v1/llm-usage/project-credits/:projectId
 
 **Description**: Get LLM usage statistics for a specific project **in AI Credits**.
 
@@ -3073,7 +3201,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 
 
-### GET /v1/llm-usage/wallet-transaction-history
+### 33. GET /v1/llm-usage/wallet-transaction-history
 
 **Description**: Wallet transaction history.
 
@@ -3112,7 +3240,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/credits/my-balance
+### 34. GET /v1/credits/my-balance
 
 **Description**: Get current logged-in user's credit balance.
 
@@ -3137,7 +3265,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## Model Pricing Management (Admin Only)
 
-### POST /v1/admin/model-pricing
+### 35. POST /v1/admin/model-pricing
 
 **Description**: Create a new pricing configuration for an LLM model.
 
@@ -3163,7 +3291,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### GET /v1/admin/model-pricing
+### 36. GET /v1/admin/model-pricing
 
 **Description**: List all model pricing configurations.
 
@@ -3172,7 +3300,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### PATCH /v1/admin/model-pricing/:id
+### 37. PATCH /v1/admin/model-pricing/:id
 
 **Description**: Update an existing pricing configuration.
 
@@ -3181,7 +3309,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-### DELETE /v1/admin/model-pricing/:id
+### 38. DELETE /v1/admin/model-pricing/:id
 
 **Description**: Delete a pricing configuration (soft delete or hard delete depending on implementation).
 
@@ -3192,7 +3320,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## Health Check
 
-### GET /v1/health
+### 39. GET /v1/health
 
 **Description**: Check if the API server is running and healthy.
 
@@ -3265,7 +3393,7 @@ None - If server is down, no response will be received.
 
 ## System Configuration (Admin Only)
 
-### GET /v1/admin/system-config
+### 40. GET /v1/admin/system-config
 
 **Description**: Get current system configuration including the active multiplier and default credits.
 
@@ -3324,7 +3452,7 @@ Authorization: Bearer <admin-token>
 
 ---
 
-### POST /v1/admin/system-config/credits-multiplier
+### 41. POST /v1/admin/system-config/credits-multiplier
 
 **Description**: Update the global USD to AI Credits multiplier (creates new history entry).
 
@@ -3365,7 +3493,7 @@ Authorization: Bearer <admin-token>
 
 ---
 
-### GET /v1/admin/system-config/credits-multiplier/history
+### 42. GET /v1/admin/system-config/credits-multiplier/history
 
 **Description**: Get history of all multiplier changes.
 
@@ -3397,7 +3525,7 @@ Authorization: Bearer <admin-token>
 
 ---
 
-### POST /v1/admin/system-config/default-credits
+### 43. POST /v1/admin/system-config/default-credits
 
 **Description**: Update default credits for new users (creates new history entry).
 
@@ -3418,7 +3546,7 @@ Authorization: Bearer <admin-token>
 
 ---
 
-### GET /v1/admin/system-config/default-credits/history
+### 44. GET /v1/admin/system-config/default-credits/history
 
 **Description**: Get history of default credits changes.
 
@@ -3429,7 +3557,7 @@ Authorization: Bearer <admin-token>
 
 ## Credits Management (Admin Only)
 
-### POST /v1/admin/credits/recharge
+### 45. POST /v1/admin/credits/recharge
 
 **Description**: Recharge specific user's credit balance.
 
@@ -3507,7 +3635,7 @@ Content-Type: application/json
 
 ---
 
-### POST /v1/admin/credits/deduct
+### 46. POST /v1/admin/credits/deduct
 
 **Description**: Deduct credits from specific user's balance.
 
@@ -3545,7 +3673,7 @@ Content-Type: application/json
 
 ---
 
-### GET /v1/admin/credits/user/:userId
+### 47. GET /v1/admin/credits/user/:userId
 
 **Description**: Get a specific user's current credit balance.
 
@@ -3554,7 +3682,7 @@ Content-Type: application/json
 
 ---
 
-### GET /v1/admin/credits/user/:userId/wallet-transaction-history
+### 48. GET /v1/admin/credits/user/:userId/wallet-transaction-history
 
 **Description**: Wallet transaction history (user).
 
@@ -3617,7 +3745,7 @@ Content-Type: application/json
 
 ---
 
-### GET /v1/admin/credits/wallet-transaction-history
+### 49. GET /v1/admin/credits/wallet-transaction-history
 
 **Description**: Wallet transaction history (global).
 

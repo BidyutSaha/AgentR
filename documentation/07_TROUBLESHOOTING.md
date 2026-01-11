@@ -10,8 +10,9 @@ Common issues and solutions for the Literature Review System.
 2. [Authentication Issues](#authentication-issues)
 3. [Email Issues](#email-issues)
 4. [API Issues](#api-issues)
-5. [OpenAI Issues](#openai-issues)
-6. [Development Issues](#development-issues)
+5. [Job Failures (Background Workers)](#job-failures-background-workers)
+6. [OpenAI Issues](#openai-issues)
+7. [Development Issues](#development-issues)
 
 ---
 
@@ -308,6 +309,45 @@ has been blocked by CORS policy
    JWT_ACCESS_SECRET=your-secret-here
    JWT_REFRESH_SECRET=your-other-secret-here
    ```
+
+---
+
+## Job Failures (Background Workers)
+
+### Error: Job failed due to insufficient credits
+
+**Symptoms**:
+- Project status shows `FAILED_INSUFFICIENT_CREDITS`
+- Papers show `isProcessedByLlm: false`
+- Admin/Job logs show status `FAILED_NO_CREDITS`
+
+**Solutions**:
+1. **Recharge credits** (Admin action or via Stripe integration once available).
+2. **Resume All Failed Jobs** (Batch):
+   ```bash
+   POST /v1/jobs/resume-all
+   Authorization: Bearer <token>
+   ```
+   This will retry both the Project Init and any Paper Scoring jobs.
+
+---
+
+### Error: Job failed to queue (Redis Down)
+
+**Symptoms**:
+- Project created successfully (202 response) but status is `PENDING` or stuck.
+- Job status in DB is `FAILED`.
+- Failure reason shows: `Queue dispatch failed: Queue operation timed out` or `Redis connection error`.
+
+**Solutions**:
+1. **Check Redis Server**: Ensure Redis is running (`redis-cli ping` should return `PONG`).
+2. **Resume All Failed Jobs**:
+   Once Redis is back online, use the bulk resume endpoint:
+   ```bash
+   POST /v1/jobs/resume-all
+   Authorization: Bearer <token>
+   ```
+   This will find all jobs that failed to queue and retry them.
 
 ---
 

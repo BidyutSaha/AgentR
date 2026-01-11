@@ -20,6 +20,18 @@ import logger from '../config/logger';
  */
 import { paperQueue, JOB_NAMES } from '../queues';
 import prisma from '../config/database';
+import { projectQueue } from '../queues'; // Ensure projectQueue import if needed, though only paperQueue is used here
+
+// Helper for queue timeouts
+const CONNECTION_TIMEOUT = 5000; // 5 seconds
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = CONNECTION_TIMEOUT): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('Queue operation timed out - Redis might be down')), timeoutMs)
+        )
+    ]);
+};
 
 /**
  * Create a new candidate paper for a project
@@ -58,17 +70,28 @@ export async function handleCreateCandidatePaper(
             });
 
             // Dispatch Async Job
-            await paperQueue.add(JOB_NAMES.PAPER_SCORING, {
-                backgroundJobId: backgroundJob.id,
-                projectId,
-                paperId: paper.id,
-                userId,
-                stageData: {
-                    userAbstract: project.userIdea,
-                    candidateAbstract: paperData.paperAbstract,
-                    title: paperData.paperTitle
-                }
-            });
+            try {
+                await withTimeout(paperQueue.add(JOB_NAMES.PAPER_SCORING, {
+                    backgroundJobId: backgroundJob.id,
+                    projectId,
+                    paperId: paper.id,
+                    userId,
+                    stageData: {
+                        userAbstract: project.userIdea,
+                        candidateAbstract: paperData.paperAbstract,
+                        title: paperData.paperTitle
+                    }
+                }));
+            } catch (queueError: any) {
+                logger.error('Failed to add paper job to queue:', queueError);
+                await prisma.backgroundJob.update({
+                    where: { id: backgroundJob.id },
+                    data: {
+                        status: 'FAILED',
+                        failureReason: `Queue dispatch failed: ${queueError.message}`
+                    }
+                });
+            }
         }
 
         res.status(202).json({
@@ -364,17 +387,28 @@ export async function handleBulkUploadCandidatePapers(
                         }
                     });
 
-                    await paperQueue.add(JOB_NAMES.PAPER_SCORING, {
-                        backgroundJobId: backgroundJob.id,
-                        projectId,
-                        paperId: paper.id,
-                        userId,
-                        stageData: {
-                            userAbstract: project.userIdea,
-                            candidateAbstract: abstract,
-                            title: title
-                        }
-                    });
+                    try {
+                        await withTimeout(paperQueue.add(JOB_NAMES.PAPER_SCORING, {
+                            backgroundJobId: backgroundJob.id,
+                            projectId,
+                            paperId: paper.id,
+                            userId,
+                            stageData: {
+                                userAbstract: project.userIdea,
+                                candidateAbstract: abstract,
+                                title: title
+                            }
+                        }));
+                    } catch (queueError: any) {
+                        logger.error('Failed to add bulk paper job to queue:', queueError);
+                        await prisma.backgroundJob.update({
+                            where: { id: backgroundJob.id },
+                            data: {
+                                status: 'FAILED',
+                                failureReason: `Queue dispatch failed: ${queueError.message}`
+                            }
+                        });
+                    }
                 }
 
                 processedCount++;

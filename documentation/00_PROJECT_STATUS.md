@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-11
 
 ---
 
@@ -118,6 +118,37 @@ Complete production-ready codebase cleanup and bring project into full complianc
 ---
 
 ## Recent Changes
+
+### 2026-01-11
+- **✅ Enhanced Job Resilience**
+  - Implemented **Orphan Checks**: Verifies project existence before resuming jobs.
+  - Implemented **Credit Checks**: Verifies user balance before retry.
+  - Implemented **Redis Outage Recovery**: Automatically reconstructs job payloads if Redis data is lost/expired.
+  - Updated `jobs.controller.ts` and `03_API.md`.
+
+### 2026-01-10
+- **✅ Added My Jobs API**
+  - Implemented `GET /v1/jobs` endpoint to list background jobs.
+  - Supports filtering by status (e.g., `PENDING`, `FAILED`) and pagination.
+  - Allows users to track their job status and view failure reasons.
+  - Updated API documentation (`03_API.md`).
+
+### 2026-01-08
+- **✅ Resilience: Redis Connection Handling**
+  - Added robust timeout (5s) for all background job dispatching.
+  - API now degrades gracefully if Redis is down: creates DB record, marks job as `FAILED` with explicit reason, and returns success to user.
+  - Prevents API hanging/timeout when queue infrastructure is unstable.
+  - Implemented in `createProject`, `createCandidatePaper`, and `bulkUpload` controllers.
+- **✅ API Documentation Overhaul**
+  - Renumbered all 49 endpoints in `03_API.md` to be strictly sequential (23-49).
+  - Fixed missing headers for Stage 2 (Queries) and Global Wallet History.
+  - Aligned Table of Contents with Body content 100%.
+- **✅ Bulk Resume for Failed Jobs**
+  - Implemented `POST /v1/jobs/resume-all` endpoint to batch retry failed jobs.
+  - Automatically handles both `FAILED` and `FAILED_NO_CREDITS` statuses.
+  - Useful for users to resume all processing after recharging their credits or fixing Redis issues.
+  - Updated `jobs.controller.ts` with queue resolution helper and batch logic.
+  - Documented new endpoint in `03_API.md`.
 
 ### 2026-01-03
 - **✅ Complete AI Credits System**

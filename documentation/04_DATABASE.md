@@ -19,6 +19,7 @@ Complete database schema documentation for the Literature Review System.
    - [refresh_tokens](#table-refresh_tokens)
    - [user_projects](#table-user_projects)
    - [candidate_papers](#table-candidate_papers)
+   - [background_jobs](#table-background_jobs)
    - [llm_usage_logs](#table-llm_usage_logs)
 4. [Indexes](#indexes)
 5. [Migrations](#migrations)
@@ -616,6 +617,56 @@ VACUUM ANALYZE user_projects;
 - **Error Tracking**: Failed calls are logged with `status='error'` and error details
 - **Billing Periods**: Use `created_at` with date range queries for monthly billing
 - **Analytics**: Group by `stage` or `model_name` for usage insights
+
+---
+
+## Table: background_jobs
+
+**Description**: Tracks asynchronous background processing tasks using BullMQ. Maintains state across user sessions and system restarts, ensuring reliability for long-running operations.
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique job identifier |
+| user_id | UUID | NOT NULL, FK → users(id) | User who initiated the job |
+| project_id | UUID | NULL | Associated project (if applicable) |
+| paper_id | UUID | NULL | Associated paper (if applicable) |
+| job_type | ENUM | NOT NULL | Type of background job (see JobType) |
+| bull_job_id | VARCHAR | NULL | ID reference to BullMQ job |
+| status | ENUM | NOT NULL, DEFAULT 'PENDING' | Current job status (see JobStatus) |
+| failure_reason | TEXT | NULL | Error message if job failed |
+| attempts | INTEGER | NOT NULL, DEFAULT 0 | Number of times job has been retried |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Job creation time |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last status update |
+
+### Indexes
+
+- `idx_background_jobs__status_job_type` — Fast filtering by type and status
+- `idx_background_jobs__user_id` — Fast lookup for user dashboard
+- `idx_background_jobs__project_id` — Lookup all jobs for a project
+- `idx_background_jobs__user_id_status` — Filter user jobs by status
+
+### Enums: JobType
+
+| Value | Description |
+|-------|-------------|
+| `PROJECT_INIT_INTENT` | Stage 1 intent decomposition |
+| `PROJECT_INIT_QUERY` | Stage 2 query generation |
+| `PAPER_SCORING` | Full paper scoring pipeline (Stage 5+6+7) |
+| `SEND_EMAIL` | Asynchronous email dispatch |
+
+### Enums: JobStatus
+
+| Value | Description |
+|-------|-------------|
+| `PENDING` | Job created in DB, waiting to be picked up by Worker (or queued during Redis outage) |
+| `PROCESSING` | Worker has started processing the job |
+| `COMPLETED` | Job finished successfully |
+| `FAILED` | Job failed due to system error (e.g. Redis down), timeout, or crash |
+| `FAILED_NO_CREDITS` | Job stopped because user lacks required AI credits |
+
+---
 
 ### Usage Examples
 

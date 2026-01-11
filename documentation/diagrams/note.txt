@@ -1,0 +1,25 @@
+The logic behind FAILED_INSUFFICIENT_CREDITS is a protection mechanism to prevent users from consuming LLM resources without paying.
+
+The Logic Flow
+Project Creation: When you create a project, a background job (PROJECT_INIT) is queued.
+Credit Check: The worker (
+project.worker.ts
+) picks up the job. Before it calls OpenAI (which costs money), it checks if your aiCreditsBalance is above a safety threshold (0.5 credits).
+Failure: If you lack credits, the worker:
+Stops execution immediately.
+Marks the BackgroundJob as FAILED_NO_CREDITS.
+Updates the Project status (intentProcessedStatus) to FAILED_INSUFFICIENT_CREDITS.
+What To Do (Recovery Workflow)
+You do not need to create the project again.
+
+Recharge Credits:
+Add credits to the user's account (via Admin API).
+Resume the Job:
+Call the resume endpoint: POST /v1/jobs/:jobId/resume.
+You can find the jobId in the original response from project creation.
+Automatic Retry:
+The system will pull the job back from the "Failed" queue.
+It will re-check your credits (which will now pass).
+It will proceed to execute the LLM Stage 1 (Intent) and Stage 2 (Queries).
+This ensures that failed jobs due to payment issues are recoverable without data loss.
+

@@ -1,10 +1,16 @@
 import { Router } from 'express';
-import { resumeJob } from '../controllers/jobs.controller';
+import { resumeJob, resumeAllFailedJobs, getJobs } from '../controllers/jobs.controller';
 import { authenticate } from '../middlewares/auth';
 
 const router = Router();
 
-// Resume a job
+// Get jobs (My Jobs)
+router.get('/', authenticate, getJobs);
+
+// Resume all failed jobs (Batch)
+router.post('/resume-all', authenticate, resumeAllFailedJobs);
+
+// Resume a single job
 router.post('/:jobId/resume', authenticate, resumeJob);
 
 export default router;
